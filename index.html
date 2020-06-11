@@ -1,0 +1,46 @@
+<html>
+
+<head>
+
+</head>
+<script src="./moosnow.conf.js"></script>
+<script src="./moosnow.platform.sdk.js"></script>
+
+<script>
+    moosnow.platform.login(() => {
+        moosnow.http.getAllConfig((res) => {
+            console.log(' moosnow.getAllConfig', res)
+            moosnow.ad.getAd((res) => {
+                console.log(' moosnow.getAd', res)
+            })
+            moosnow.platform.checkVersion("1_1_4", (showAd) => {
+                console.log(' moosnow.checkVersion', showAd)
+            })
+        })
+
+        moosnow.http.getMistouchPosNum(res => {
+            console.log(' moosnow.getMistouchPosNum', res)
+        })
+        moosnow.http.getMisTouchNum(res => {
+            console.log(' moosnow.getMisTouchNum', res)
+        })
+    })
+
+    moosnow.http.point("aaa", {})
+
+    moosnow.platform.showBanner();
+
+    moosnow.platform.hideBanner();
+
+    moosnow.platform.startRecord();
+
+
+    moosnow.platform.showVideo(res => {
+        console.log(`video `, res)
+    })
+
+
+
+</script>
+
+</html>
