@@ -54,7 +54,7 @@ moosnow.conf.js 中的 banner id, video id, inter id 等广告ID 是需要用账
 ![Image text](https://liteplay-1253992229.cos.ap-guangzhou.myqcloud.com/SDK/guide/guide_error.jpg)  
 
 
-## 请将 ald-game.js 移动往下移动几个位置 以COCOS 2.3.3 为例   
+## 请将 ald-game.js 移动往后移动，延迟加载时间 以COCOS 2.3.3 为例   
 ![Image text](https://liteplay-1253992229.cos.ap-guangzhou.myqcloud.com/SDK/guide/guide_error2.png)
 
 
