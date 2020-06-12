@@ -45,13 +45,13 @@ moosnow.conf.js 中的 banner id, video id, inter id 等广告ID 是需要用账
     如果你的开发工具没有头条、QQ的打包方式选择，请选择微信模式
     
 
-## 关于统计配置
-### 复制utils 文件夹到你的项目根目录
-在ald-game-conf.js 中配置app_key、configUrl 两个参数，参数由墨雪运营人员提供
+## 关于统计配置  
+### 复制utils 文件夹到你的项目根目录  
+在ald-game-conf.js 中配置app_key、configUrl 两个参数，参数由墨雪运营人员提供  
 ![Image text](http://aldpicsh.aldwx.com/doc_aldwx/xyxtj-wxxyxsdkjr03.png)
-如果出现运行错误，如下图
+如果出现运行错误，如下图  
 ![Image text](https://liteplay-1253992229.cos.ap-guangzhou.myqcloud.com/SDK/guide/guide_error.jpg)
-请将 ald-game.js 移动往下移动几个位置 以COCOS 2.3.3 为例
+请将 ald-game.js 移动往下移动几个位置 以COCOS 2.3.3 为例   
 ![Image text](https://liteplay-1253992229.cos.ap-guangzhou.myqcloud.com/SDK/guide/guide_error2.png)
 
 
@@ -59,7 +59,7 @@ moosnow.conf.js 中的 banner id, video id, inter id 等广告ID 是需要用账
 
 http://git.liteplay.com.cn/open/moosnowSdk
 
-## 点击下载压缩包
+## 点击下载压缩包  
 
 ![Image text](https://liteplay-1253992229.cos.ap-guangzhou.myqcloud.com/SDK/guide/sdk_guide.png)
 
