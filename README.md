@@ -1,3 +1,9 @@
+
+
+# 因SDK内容越来越多，为了使文档更加清晰，以后的说明文档都将发布到
+https://www.kancloud.cn/ilaozhou/mo_snow_sdk/1350122
+
+
 # VERSION 1.2.5 
 	增加VIVO支持
 	修改头条banner底部位置，防止审核不过
