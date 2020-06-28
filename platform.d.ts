@@ -324,7 +324,7 @@ declare class PlatformModule extends BaseModule {
      * @param callback 分享成功回调参数 = true, 分享失败回调参数 = false,
      */
     share(query?: Object, callback?: (shared: boolean) => void): void;
-    shareWithoutCheck(query?: Object, callback?: (shared: boolean) => void): void;
+    shareWithoutCheck(query?: Object, callback?: (shared: boolean,err:any) => void): void;
     private _share;
     _buildShareInfo(query?: any): {
         title: string;
