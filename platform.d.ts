@@ -237,6 +237,10 @@ declare class PlatformModule extends BaseModule {
     initAppConfig(): void;
     isIphoneXModel(): boolean;
     isIphoneX(): boolean;
+      /***
+     * 检测Iphone
+     */
+    isIphone(): boolean;
     private compareVersion;
     /**
     * 检测版本是否可用
@@ -430,7 +434,7 @@ declare class PlatformModule extends BaseModule {
      * })
      *
      */
-    clickNative(): void;
+    clickNative(callback?: Function): void;
     /**
       * 盒子广告
       * @param callback 关闭回调
