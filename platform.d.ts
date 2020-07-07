@@ -237,9 +237,9 @@ declare class PlatformModule extends BaseModule {
     initAppConfig(): void;
     isIphoneXModel(): boolean;
     isIphoneX(): boolean;
-      /***
-     * 检测Iphone
-     */
+    /***
+   * 检测Iphone
+   */
     isIphone(): boolean;
     private compareVersion;
     /**
@@ -455,7 +455,22 @@ declare class PlatformModule extends BaseModule {
     showRank(): void;
     updateUserScore(score: any): void;
     hideRank(): void;
+    /**
+     * 用户是否关注抖音号
+     * @param success
+     * @param fail
+     */
+    checkFollowAwemeSate(success: (hasFollowed: any) => void, fail: (err: any) => void): void;
+    /**
+     * 调用后跳转个人主页，并且回调关注成功/失败回调，异步回调接口
+     * @param success
+     * @param fail
+     */
+    openAwemeUserProile(success: (hasFollowed: any) => void, fail: (err: any) => void): void;
     onDisable(): void;
+
+
+
 }
 
 
