@@ -391,9 +391,13 @@ declare class PlatformModule extends BaseModule {
      */
     showAutoBanner(): void;
     /**
-     * 每隔几秒显示一次banner， 后台配置时间 间隔
+     * 间隔banner, 每隔几秒显示一次banner， 后台配置时间 间隔
      */
     showIntervalBanner(): void;
+    /**
+     * 清除间隔banner
+     */
+    clearIntervalBanner(): void;
     hideBanner(): void;
     initVideo(): void;
     createRewardAD(show: any): void;
