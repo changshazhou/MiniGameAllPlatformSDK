@@ -34,7 +34,7 @@ window.moosnowConfig = {
         boxId: "32b9a79d89010c17850ba54da9dab60f", //qq游戏特有的广告
         nativeId: ["", ""],
         moosnowAppId: "1110381022",
-        version: "1.1.0"   url: "https://liteplay-1253992229.cos.ap-guangzhou.myqcloud.com/config/tp_zzxhcar_config.json",//游戏的配置json，如果用到了getMistouchNum,后台必须配置mistouchNum字段
+        version: "1.1.0"
     },
     bd: {
         bannerId: "168776",
