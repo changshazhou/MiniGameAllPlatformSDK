@@ -485,7 +485,8 @@ declare class PlatformModule extends BaseModule {
     openAwemeUserProile(success: (hasFollowed: any) => void, fail: (err: any) => void): void;
     onDisable(): void;
 
-
+    hasShortcutInstalled(success: (has) => void): void
+    installShortcut(success: () => void, message: string = "方便下次快速启动"): void;
 
 }
 
