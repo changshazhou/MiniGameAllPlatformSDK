@@ -385,11 +385,11 @@ declare class PlatformModule extends BaseModule {
      */
     showBanner(remoteOn?: boolean, callback?: (isOpend: boolean) => void, position?: string, style?: bannerStyle): void;
     /**
-     * 会自动隐藏的banner
-     * 一般用游戏中
-     *
-     */
-    showAutoBanner(): void;
+       * 会自动隐藏的banner
+       * 一般用游戏中
+       * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
+       */
+    showAutoBanner(remoteOn: boolean): void;
     /**
      * 间隔banner, 每隔几秒显示一次banner， 后台配置时间 间隔
      */
@@ -487,6 +487,7 @@ declare class PlatformModule extends BaseModule {
 
     hasShortcutInstalled(success: (has) => void): void
     installShortcut(success: () => void, message: string = "方便下次快速启动"): void;
+    exitApplication();
 
 }
 
@@ -680,7 +681,7 @@ declare class moosnow {
         /**
         * 扩展1
         */
-        EXTEND1: 1024,
+        ROTATE: 1024,
         /**
         * 扩展2
         */
