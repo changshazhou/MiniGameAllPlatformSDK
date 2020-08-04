@@ -384,16 +384,18 @@ declare class PlatformModule extends BaseModule {
      * @param style 自定义样式
      */
     showBanner(remoteOn?: boolean, callback?: (isOpend: boolean) => void, position?: string, style?: bannerStyle): void;
+
     /**
-       * 会自动隐藏的banner
-       * 一般用游戏中
-       * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
-       */
-    showAutoBanner(remoteOn: boolean): void;
-    /**
-     * 间隔banner, 每隔几秒显示一次banner， 后台配置时间 间隔
+     * 会自动隐藏的banner
+     * 一般用游戏中
+     * @param position banner的位置，默认底部
      */
-    showIntervalBanner(): void;
+    showAutoBanner(position?: string): void;
+    /**
+     * 连续不断的显示和隐藏 banner
+     * @param position
+     */
+    showIntervalBanner(position?: string): void;
     /**
      * 清除间隔banner
      */
