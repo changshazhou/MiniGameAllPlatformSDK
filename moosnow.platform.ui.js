@@ -676,6 +676,12 @@ var mx = (function () {
             var temp = __assign(__assign({}, new NodeAttribute()), json);
             return temp;
         };
+        NodeAttribute.convertStr2Enum = function (ev, key, def) {
+            if (ev.hasOwnProperty(key)) {
+                return ev[key];
+            }
+            return def;
+        };
         return NodeAttribute;
     }());
 
@@ -1281,9 +1287,6 @@ var mx = (function () {
         __extends(LayoutAttribute, _super);
         function LayoutAttribute() {
             var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this.layoutType = cc.Layout.Type.GRID;
-            _this.resizeMode = cc.Layout.ResizeMode.CONTAINER;
-            _this.startAxis = cc.Layout.AxisDirection.HORIZONTAL;
             _this.left = 30;
             _this.top = 30;
             _this.right = 30;
@@ -1293,19 +1296,11 @@ var mx = (function () {
             return _this;
         }
         LayoutAttribute.parse = function (json) {
-            return __assign(__assign({}, new LayoutAttribute()), json);
-        };
-        LayoutAttribute.convertType = function (type) {
-            if (Common.isString(type)) {
-                if (cc.Layout.Type[type]) {
-                    return cc.Layout.Type[type];
-                }
-                else {
-                    return cc.Layout.Type.GRID;
-                }
-            }
-            else
-                return type;
+            var retValue = __assign(__assign({}, new LayoutAttribute()), json);
+            retValue.resizeMode = NodeAttribute.convertStr2Enum(cc.Layout.ResizeMode, json.resizeMode, cc.Layout.ResizeMode.CONTAINER);
+            retValue.startAxis = NodeAttribute.convertStr2Enum(cc.Layout.AxisDirection, json.startAxis, cc.Layout.AxisDirection.HORIZONTAL);
+            retValue.layoutType = NodeAttribute.convertStr2Enum(cc.Layout.Type, json.layoutType, cc.Layout.Type.HORIZONTAL);
+            return retValue;
         };
         return LayoutAttribute;
     }(NodeAttribute));
@@ -1440,7 +1435,6 @@ var mx = (function () {
             layout.paddingBottom = layoutCfg.bottom;
             layout.spacingX = layoutCfg.spacingX;
             layout.spacingY = layoutCfg.spacingY;
-            // layout.startAxis = layoutCfg.startAxis;
             node.x = layoutCfg.x;
             node.y = layoutCfg.y;
             node.width = this.convertWidth(layoutCfg.width);
@@ -1476,22 +1470,22 @@ var mx = (function () {
             if (viewCfg.widget) {
                 this.createWidget(container, WidgetAttribute.parse(viewCfg.widget));
             }
-            var node = this.createNode(viewCfg.name + '_scroll', viewCfg);
-            var scroll = node.addComponent(cc.ScrollView);
+            var scrollNode = this.createNode(viewCfg.name + '_scroll', viewCfg);
+            var scroll = scrollNode.addComponent(cc.ScrollView);
             scroll.horizontal = !!viewCfg.scroll.horizontal;
+            scroll.vertical = !!viewCfg.scroll.vertical;
             scroll.horizontalScrollBar = null;
             scroll.verticalScrollBar = null;
-            scroll.vertical = !scroll.horizontal;
-            node.width = this.convertWidth(viewCfg.scroll.width);
-            node.height = this.convertHeight(viewCfg.scroll.height);
-            container.addChild(node);
+            scrollNode.width = this.convertWidth(viewCfg.scroll.width);
+            scrollNode.height = this.convertHeight(viewCfg.scroll.height);
+            container.addChild(scrollNode);
+            if (viewCfg.layout.widget) {
+                this.createWidget(scrollNode, viewCfg.layout.widget);
+            }
             var view = this.createNode(viewCfg.name + "_view");
             view.addComponent(cc.Mask);
-            // mask.type = cc.Mask.Type.RECT;
-            // this.createWidget(view, new WidgetAttribute(true, true, true, true));
-            view.width = this.convertWidth(viewCfg.scroll.width);
-            view.height = this.convertHeight(viewCfg.scroll.height);
-            node.addChild(view);
+            this.createWidget(view, new WidgetAttribute(true, true, true, true, 0, 0, 0, 0));
+            scrollNode.addChild(view);
             viewCfg.layout.name = viewCfg.name + '_layout';
             var layoutNode = this.createLayout(view, LayoutAttribute.parse(viewCfg.layout));
             layoutNode.width = this.convertWidth(viewCfg.layout.width);
@@ -1504,7 +1498,7 @@ var mx = (function () {
         };
         CocosNodeHelper.createWidget = function (view, widgetCfg) {
             var widget = view.addComponent(cc.Widget);
-            widget.isAlignLeft = widgetCfg.isAlignRight;
+            widget.isAlignLeft = widgetCfg.isAlignLeft;
             widget.isAlignTop = widgetCfg.isAlignTop;
             widget.isAlignRight = widgetCfg.isAlignRight;
             widget.isAlignBottom = widgetCfg.isAlignBottom;
@@ -1715,6 +1709,7 @@ var mx = (function () {
         function ScrollAttribute() {
             var _this = _super !== null && _super.apply(this, arguments) || this;
             _this.horizontal = true;
+            _this.vertical = true;
             return _this;
         }
         return ScrollAttribute;
@@ -1908,7 +1903,7 @@ var mx = (function () {
                             var formCfg = NodeAttribute.parse(tempCfg);
                             formCfg.name = name;
                             var node = _this._createUINode(formCfg, tempLogic, tempData, parent);
-                            console.log('createNodeByTemplate ', formCfg);
+                            // console.log('createNodeByTemplate ', formCfg)
                         }
                     });
                 }
@@ -3656,7 +3651,7 @@ var mx = (function () {
             var layout = this.endContainer_layout.getComponent(cc.Layout);
             layout.type = cc.Layout.Type.GRID;
             layout.resizeMode = cc.Layout.ResizeMode.NONE;
-            this.initFiexdView(this.endContainer_layout, "8个固定大导出", "exportAdItem");
+            this.initFiexdView(this.endContainer_layout, "8个固定大导出", "fiexdAdItem");
         };
         // private disableEnd() {
         //     moosnow.form.formFactory.hideNodeByTemplate("exportAdItem", null);
