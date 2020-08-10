@@ -1287,6 +1287,9 @@ var mx = (function () {
         __extends(LayoutAttribute, _super);
         function LayoutAttribute() {
             var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.layoutType = cc.Layout.Type.GRID;
+            _this.resizeMode = cc.Layout.ResizeMode.CONTAINER;
+            _this.startAxis = cc.Layout.AxisDirection.HORIZONTAL;
             _this.left = 30;
             _this.top = 30;
             _this.right = 30;
@@ -1297,9 +1300,9 @@ var mx = (function () {
         }
         LayoutAttribute.parse = function (json) {
             var retValue = __assign(__assign({}, new LayoutAttribute()), json);
+            retValue.layoutType = NodeAttribute.convertStr2Enum(cc.Layout.Type, json.layoutType, cc.Layout.Type.GRID);
             retValue.resizeMode = NodeAttribute.convertStr2Enum(cc.Layout.ResizeMode, json.resizeMode, cc.Layout.ResizeMode.CONTAINER);
             retValue.startAxis = NodeAttribute.convertStr2Enum(cc.Layout.AxisDirection, json.startAxis, cc.Layout.AxisDirection.HORIZONTAL);
-            retValue.layoutType = NodeAttribute.convertStr2Enum(cc.Layout.Type, json.layoutType, cc.Layout.Type.HORIZONTAL);
             return retValue;
         };
         return LayoutAttribute;
@@ -1435,6 +1438,7 @@ var mx = (function () {
             layout.paddingBottom = layoutCfg.bottom;
             layout.spacingX = layoutCfg.spacingX;
             layout.spacingY = layoutCfg.spacingY;
+            layout.startAxis = layoutCfg.startAxis;
             node.x = layoutCfg.x;
             node.y = layoutCfg.y;
             node.width = this.convertWidth(layoutCfg.width);
@@ -3139,6 +3143,7 @@ var mx = (function () {
             _this.rightContainer_scroll = null;
             _this.rightContainer_layout = null;
             _this.rotateContainer = null;
+            _this.rotateContainer_layout = null;
             _this.sideContainer = null;
             _this.sideView = null;
             _this.sideLayout = null;
@@ -3661,7 +3666,7 @@ var mx = (function () {
             var scrollView = this.exportContainer_scroll.getComponent(cc.ScrollView);
             layout.type = cc.Layout.Type.GRID;
             layout.resizeMode = cc.Layout.ResizeMode.CONTAINER;
-            layout.startAxis = cc.Layout.AxisDirection.VERTICAL;
+            // layout.startAxis = cc.Layout.AxisDirection.VERTICAL;
             this.initView(scrollView, this.exportContainer_layout, "大导出", "exportAdItem");
         };
         CocosAdForm.prototype.disableRotate = function () {
@@ -3672,7 +3677,7 @@ var mx = (function () {
             var _this = this;
             if (!this.mAdData)
                 return;
-            var source = this.setPosition(this.mAdData.indexLeft, "结束浮动", callback, true);
+            var source = this.setPosition(this.mAdData.indexLeft, "旋转导出", callback, true);
             var beginIdx = Common.randomNumBoth(0, source.length - 1);
             var tempName = "rotateAdItem";
             moosnow.form.formFactory.getTemplate(tempName, function (tempCfg) {
@@ -3688,16 +3693,13 @@ var mx = (function () {
                 ];
                 var showIds = [];
                 var endAd = [];
-                for (var i = beginIdx; i < beginIdx + 4; i++) {
-                    var adRow = void 0;
-                    if (i <= source.length - 1)
-                        adRow = source[i];
-                    else
-                        adRow = source[i - source.length - 1];
-                    if (!pos[i - beginIdx])
-                        debugger;
-                    adRow.x = pos[i - beginIdx].x;
-                    adRow.y = pos[i - beginIdx].y;
+                for (var i = 0; i < 4; i++) {
+                    if (source.length == 0)
+                        break;
+                    var rowIndex = Common.randomNumBoth(0, source.length - 1);
+                    var adRow = source.splice(rowIndex, 1)[0];
+                    adRow.x = pos[i].x;
+                    adRow.y = pos[i].y;
                     showIds.push({
                         appid: adRow.appid,
                         position: adRow.position,
@@ -3708,10 +3710,10 @@ var mx = (function () {
                 endAd.forEach(function (adRow) {
                     adRow.source = source;
                     adRow.showIds = showIds;
-                    moosnow.form.formFactory.createNodeByTemplate(tempName, CocosAdViewItem, adRow, _this.rotateContainer);
+                    moosnow.form.formFactory.createNodeByTemplate(tempName, CocosAdViewItem, adRow, _this.rotateContainer_layout);
                 });
                 var t = cc.Canvas.instance.node.width / 2 / 800;
-                _this.rotateContainer.children.forEach(function (item, idx) {
+                _this.rotateContainer_layout.children.forEach(function (item, idx) {
                     item.x = pos[idx].x - cc.Canvas.instance.node.width / 2;
                     item.stopAllActions();
                     item.runAction(cc.spawn(cc.moveTo(t, new cc.Vec2(pos[idx].x, pos[idx].y)), cc.rotateBy(t, 360)));
@@ -4524,6 +4526,7 @@ var mx = (function () {
                 return;
             }
             window["moosnow"].form = this.formUtil;
+            window["moosnow"].nodeHelper = new CocosNodeHelper();
             // window["moosnow"].delay = this.delay
         }
         Object.defineProperty(moosnowUI.prototype, "formUtil", {
