@@ -476,6 +476,20 @@ var mx = (function () {
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Common, "isOnlyUI", {
+            get: function () {
+                return window["onlyUI"] == true;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Common, "isPC", {
+            get: function () {
+                return cc.sys.browserType === cc.sys.BROWSER_TYPE_CHROME;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(Common, "config", {
             get: function () {
                 var winCfg = window["moosnowConfig"];
@@ -606,6 +620,8 @@ var mx = (function () {
             this.moduleName = "";
             this.mIntervalArr = {};
             this.mTimeoutArr = {};
+            this.mScheduleIndex = 0;
+            this.mMaping = {};
         }
         BaseModule.prototype.schedule = function (callback, time) {
             var arg = [];
@@ -613,33 +629,41 @@ var mx = (function () {
                 arg[_i - 2] = arguments[_i];
             }
             var self = this;
-            var id = setInterval(function () {
+            // this.mMaping[this.mScheduleIndex] = callback;
+            var handle = setInterval(function () {
                 if (callback)
                     callback.apply.apply(callback, __spreadArrays([self], arg));
-            }, time * 1000);
-            console.log('BaseModule schedule ', id);
-            this.mIntervalArr[id] = callback;
+            }, time * 1000, self);
+            this.mIntervalArr[this.mScheduleIndex] = {
+                handle: handle,
+                callback: callback
+            };
+            this.mScheduleIndex++;
         };
         BaseModule.prototype.unschedule = function (callback) {
-            for (var key in this.mIntervalArr) {
-                if (this.mIntervalArr[key] === callback || Common.isEmpty(this.mIntervalArr[key])) {
-                    clearInterval(parseInt(key));
+            for (var idx in this.mIntervalArr) {
+                if (this.mIntervalArr[idx].callback == callback) {
+                    clearInterval(parseInt(this.mIntervalArr[idx].handle));
                 }
             }
         };
         BaseModule.prototype.scheduleOnce = function (callback, time) {
             var self = this;
-            var id = setTimeout(function () {
-                clearTimeout(id);
+            var handle = setTimeout(function () {
+                clearTimeout(handle);
                 if (callback)
                     callback.apply(self);
             }, time * 1000);
-            this.mTimeoutArr[id] = callback;
+            this.mTimeoutArr[this.mScheduleIndex] = {
+                handle: handle,
+                callback: callback
+            };
+            this.mScheduleIndex++;
         };
         BaseModule.prototype.unscheduleOnce = function (callback) {
-            for (var key in this.mTimeoutArr) {
-                if (this.mTimeoutArr[key] === callback || Common.isEmpty(this.mTimeoutArr[key])) {
-                    clearTimeout(parseInt(key));
+            for (var idx in this.mTimeoutArr) {
+                if (this.mTimeoutArr[idx].callback == callback) {
+                    clearInterval(parseInt(this.mTimeoutArr[idx].handle));
                 }
             }
         };
@@ -649,33 +673,41 @@ var mx = (function () {
                 arg[_i - 2] = arguments[_i];
             }
             var self = this;
-            var id = setInterval(function () {
+            // this.mMaping[this.mScheduleIndex] = callback;
+            var handle = setInterval(function () {
                 if (callback)
                     callback.apply.apply(callback, __spreadArrays([self], arg));
-            }, time * 1000);
-            console.log('BaseModule schedule ', id);
-            this.mIntervalArr[id] = callback;
+            }, time * 1000, self);
+            this.mIntervalArr[this.mScheduleIndex] = {
+                handle: handle,
+                callback: callback
+            };
+            this.mScheduleIndex++;
         };
         BaseModule.unschedule = function (callback) {
-            for (var key in this.mIntervalArr) {
-                if (this.mIntervalArr[key] === callback || Common.isEmpty(this.mIntervalArr[key])) {
-                    clearInterval(parseInt(key));
+            for (var idx in this.mIntervalArr) {
+                if (this.mIntervalArr[idx].callback == callback) {
+                    clearInterval(parseInt(this.mIntervalArr[idx].handle));
                 }
             }
         };
         BaseModule.scheduleOnce = function (callback, time) {
             var self = this;
-            var id = setTimeout(function () {
-                clearTimeout(id);
+            var handle = setTimeout(function () {
+                clearTimeout(handle);
                 if (callback)
                     callback.apply(self);
             }, time * 1000);
-            this.mTimeoutArr[id] = callback;
+            this.mTimeoutArr[this.mScheduleIndex] = {
+                handle: handle,
+                callback: callback
+            };
+            this.mScheduleIndex++;
         };
         BaseModule.unscheduleOnce = function (callback) {
-            for (var key in this.mTimeoutArr) {
-                if (this.mTimeoutArr[key] === callback || Common.isEmpty(this.mTimeoutArr[key])) {
-                    clearTimeout(parseInt(key));
+            for (var idx in this.mTimeoutArr) {
+                if (this.mTimeoutArr[idx].callback == callback) {
+                    clearInterval(parseInt(this.mTimeoutArr[idx].handle));
                 }
             }
         };
@@ -715,6 +747,7 @@ var mx = (function () {
         };
         BaseModule.mIntervalArr = {};
         BaseModule.mTimeoutArr = {};
+        BaseModule.mScheduleIndex = 0;
         return BaseModule;
     }());
 
@@ -1540,7 +1573,14 @@ var mx = (function () {
         };
         //-----------------录屏 具体逻辑在子类实现------------------
         PlatformModule.prototype.initRecord = function () { };
-        PlatformModule.prototype.clipRecord = function () { };
+        /**
+         * 裁剪视频
+         * @param timeRange 默认[2,2] 裁剪视频时保留的前后时长
+         */
+        PlatformModule.prototype.clipRecord = function (timeRange) {
+            if (timeRange === void 0) { timeRange = [2, 2]; }
+        };
+        ;
         /**
          * 开始录屏
          * @param duration 录屏时长
@@ -1779,9 +1819,19 @@ var mx = (function () {
             if (this.banner) {
                 console.log('show banner style ', this.banner.style);
                 this.banner.hide();
+                /**
+                 * 先设置位置
+                 */
+                this._resetBanenrStyle({
+                    width: this.banner.style.width,
+                    height: this.banner.style.realHeight
+                });
                 var showPromise = this.banner.show();
                 showPromise && showPromise
                     .then(function () {
+                    /**
+                     * 再微调，banner 大小可能跟上一个有变化
+                     */
                     _this._resetBanenrStyle({
                         width: _this.banner.style.width,
                         height: _this.banner.style.realHeight
@@ -1887,21 +1937,24 @@ var mx = (function () {
         };
         PlatformModule.prototype.createRewardAD = function (show) {
             var _this = this;
-            if (moosnow.platform.videoLoading) {
+            if (this.videoLoading) {
                 return;
             }
             if (!window[this.platformName]) {
-                moosnow.platform.videoCb(VIDEO_STATUS.END);
+                if (moosnow.platform.videoCb)
+                    moosnow.platform.videoCb(VIDEO_STATUS.END);
                 return;
             }
             if (!window[this.platformName].createRewardedVideoAd) {
-                moosnow.platform.videoCb(VIDEO_STATUS.END);
+                if (moosnow.platform.videoCb)
+                    moosnow.platform.videoCb(VIDEO_STATUS.END);
                 return;
             }
             var videoId = this.videoId;
             if (Common.isEmpty(videoId)) {
                 console.warn(MSG.VIDEO_KEY_IS_NULL);
-                moosnow.platform.videoCb(VIDEO_STATUS.END);
+                if (moosnow.platform.videoCb)
+                    moosnow.platform.videoCb(VIDEO_STATUS.END);
                 return;
             }
             if (!this.video) {
@@ -2163,6 +2216,9 @@ var mx = (function () {
             _this._regisiterWXCallback();
             _this.initBanner();
             _this.initInter();
+            setTimeout(function () {
+                _this.initVideo();
+            }, 1);
             return _this;
         }
         /**
@@ -2225,7 +2281,8 @@ var mx = (function () {
                 user_id: user_id,
                 channel_id: channel_id,
                 channel_appid: channel_appid,
-                scene: scene, fromApp: fromApp
+                scene: scene,
+                fromApp: fromApp
             }, "POST", function (respone) {
                 if (respone.code == 0 && respone.data && respone.data.user_id) {
                     moosnow.data.setToken(respone.data.user_id);
@@ -2529,7 +2586,7 @@ var mx = (function () {
                 wx.getStorage({
                     key: this.cacheKey,
                     success: function (storageVal) {
-                        this.this.cacheImage = storageVal.data;
+                        this.cacheImage = storageVal.data;
                         console.log('cacheKey data  ', storageVal.data);
                     },
                     fail: function () {
@@ -3776,11 +3833,11 @@ var mx = (function () {
         __extends(GameDataCenter, _super);
         function GameDataCenter() {
             var _this = _super !== null && _super.apply(this, arguments) || this;
-            _this.TOKEN = "token";
-            _this.COIN = "COIN";
+            _this.TOKEN = "MOOSNOW_SDK_TOKEN";
+            _this.COIN = "MOOSNOW_SDK_COIN";
             _this.mUserToken = "";
-            _this.VIBRATE_SWITCH = "VIBRATE_SWITCH";
-            _this.USER_PRIZE_KEY = "USER_PRIZE_KEY";
+            _this.VIBRATE_SWITCH = "MOOSNOW_VIBRATE_SWITCH";
+            _this.USER_PRIZE_KEY = "MOOSNOW_USER_PRIZE_KEY";
             _this.mCoin = 0;
             _this.mCurrentMisTouchCount = 0;
             _this.mChannel_id = "0";
@@ -4003,16 +4060,25 @@ var mx = (function () {
     var WXAdModule = /** @class */ (function (_super) {
         __extends(WXAdModule, _super);
         function WXAdModule() {
-            return _super !== null && _super.apply(this, arguments) || this;
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.mErrorNum = 0;
+            return _this;
         }
         WXAdModule.prototype.getRemoteAd = function (cb) {
             var _this = this;
-            var url = ROOT_CONFIG.HTTP_ROOT + "/exportConfig/" + Common.config.moosnowAppId + ".json?t=" + Date.now();
+            var url = ROOT_CONFIG.HTTP_ROOT + "/exportConfig/" + Common.config.moosnowAppId + "1.json?t=" + Date.now();
             moosnow.http.request(url, {}, 'GET', function (res) {
                 cb(res);
                 console.log('WXAdModule getRemoteAd', res);
             }, function (error) {
-                _this.repairAd(cb);
+                _this.mErrorNum++;
+                if (_this.mErrorNum < 4) {
+                    _this.getRemoteAd(cb);
+                }
+                else {
+                    _this.mErrorNum = 0;
+                    _this.repairAd(cb);
+                }
                 console.log('getRemoteAd fail');
             }, function () {
                 console.log('getRemoteAd complete');
@@ -4070,7 +4136,10 @@ var mx = (function () {
             _this._registerTTCallback();
             _this.initBanner();
             _this.initRecord();
-            // this.initInter();
+            // 
+            _this.scheduleOnce(function () {
+                _this.initVideo();
+            }, 1);
             _this.bannerWidth = 208;
             return _this;
         }
@@ -4143,13 +4212,14 @@ var mx = (function () {
             // if (!this.isDouyin()) return;
             this.recordObj = window[this.platformName].getGameRecorderManager();
         };
-        TTModule.prototype.clipRecord = function () {
+        TTModule.prototype.clipRecord = function (timeRange) {
+            if (timeRange === void 0) { timeRange = [2, 2]; }
             if (!this.recordObj)
                 return;
             this.recordNumber++;
             console.log('clipRecord', this.recordNumber);
             this.recordObj.recordClip({
-                timeRange: [2, 2],
+                timeRange: timeRange,
                 success: function (r) {
                     console.log('clipRecord 成功 ', r);
                 }
@@ -5654,7 +5724,6 @@ var mx = (function () {
         // }
         VIVOModule.prototype._onBannerError = function (err) {
             console.warn('banner___error:', err.errCode, ' msg ', err.errMsg);
-            this.destroyBanner();
         };
         VIVOModule.prototype.getSystemInfoSync = function () {
             if (this.systemInfo == null) {
@@ -5665,25 +5734,6 @@ var mx = (function () {
                 console.log(MSG.SYSTEM_INFO, this.systemInfo);
             }
             return this.systemInfo;
-        };
-        VIVOModule.prototype._prepareBanner = function () {
-            if (!window[this.platformName].createBannerAd)
-                return;
-            if (this.banner) {
-                this.banner.offSize();
-                this.banner.offError();
-                this.banner.offLoad();
-                this.banner.offClose();
-                this.banner.destroy();
-                this.banner = null;
-            }
-            this.banner = this._createBannerAd();
-            if (this.banner) {
-                this.banner.onSize(this._bottomCenterBanner.bind(this));
-                this.banner.onError(this._onBannerError.bind(this));
-                this.banner.onLoad(this._onBannerLoad.bind(this));
-                this.banner.onClose(this._onBannerClose.bind(this));
-            }
         };
         VIVOModule.prototype._createBannerAd = function () {
             if (!window[this.platformName])
@@ -5729,7 +5779,6 @@ var mx = (function () {
                 width: this.bannerWidth,
                 height: this.bannerHeight
             };
-            console.log('_createBannerAd style', style, 'screenHeight', screenHeight, 'bannerHeigth', this.bannerHeigth);
             var banner = window[this.platformName].createBannerAd({
                 posId: this.bannerId,
                 style: style
@@ -5752,16 +5801,6 @@ var mx = (function () {
         };
         VIVOModule.prototype._onBannerHide = function () {
             console.log('banner 已隐藏 ');
-        };
-        VIVOModule.prototype.destroyBanner = function () {
-            if (this.banner) {
-                this.banner.offResize(this._bottomCenterBanner);
-                this.banner.offError(this._onBannerError);
-                this.banner.offLoad(this._onBannerLoad);
-                this.banner.offClose(this._onBannerClose);
-                this.banner.destroy();
-                this.banner = null;
-            }
         };
         /**
           * 显示平台的banner广告
@@ -5796,13 +5835,15 @@ var mx = (function () {
         };
         VIVOModule.prototype._showBanner = function () {
             var _this = this;
-            if (!this.banner) {
-                this.initBanner();
+            if (this.banner) {
+                this.banner.hide();
+                this.banner.destroy();
+                this.banner = null;
             }
-            if (!this.banner)
+            this.banner = this._createBannerAd();
+            if (!(this.banner && this.banner.show))
                 return;
             var adshow = this.banner.show();
-            console.log('显示banner style ', this.banner);
             adshow && adshow.then(function () {
                 console.log("banner广告展示成功");
             }).catch(function (err) {
@@ -5832,17 +5873,15 @@ var mx = (function () {
         };
         VIVOModule.prototype.hideBanner = function () {
             console.log(MSG.HIDE_BANNER);
-            if (!this.isBannerShow)
-                return;
             if (!window[this.platformName]) {
                 return;
             }
-            this.bannerShowCount++;
             if (this.banner) {
+                console.log("隐藏和销毁banner");
                 this.banner.hide();
-                this.destroyBanner();
+                this.banner.destroy();
+                this.banner = null;
             }
-            this.isBannerShow = false;
         };
         VIVOModule.prototype.createRewardAD = function (show) {
             if (moosnow.platform.videoLoading) {
@@ -5957,6 +5996,7 @@ var mx = (function () {
                 return;
             if (!window[this.platformName].createNativeAd)
                 return;
+            this._destroyNative();
             this.native = window[this.platformName].createNativeAd({
                 posId: this.nativeId[this.nativeIdIndex]
             });
@@ -6021,15 +6061,18 @@ var mx = (function () {
                     _this.showInter();
                 }
                 else {
-                    _this.nativeCb(null);
+                    if (_this.nativeCb)
+                        _this.nativeCb(null);
                 }
             });
         };
         VIVOModule.prototype._destroyNative = function () {
             this.nativeLoading = false;
-            this.native.offLoad(); // 移除原生广告加载成功回调
-            this.native.offError(); // 移除失败回调
-            this.native.destroy(); // 隐藏 banner，成功回调 onHide, 出错的时候回调 onError
+            if (this.native) {
+                this.native.offLoad(); // 移除原生广告加载成功回调
+                this.native.offError(); // 移除失败回调
+                this.native.destroy(); // 隐藏 banner，成功回调 onHide, 出错的时候回调 onError
+            }
             console.log(MSG.NATIVE_DESTROY);
         };
         /**
@@ -6063,6 +6106,7 @@ var mx = (function () {
                     moosnow.http.getAllConfig(function (res) {
                         if (res.nativeErrorShowInter == 1) {
                             console.log('原生加载出错，用插屏代替');
+                            _this.nativeCb(null);
                             _this.showInter();
                         }
                         else {
