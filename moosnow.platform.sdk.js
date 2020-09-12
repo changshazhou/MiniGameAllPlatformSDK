@@ -4066,7 +4066,7 @@ var mx = (function () {
         }
         WXAdModule.prototype.getRemoteAd = function (cb) {
             var _this = this;
-            var url = ROOT_CONFIG.HTTP_ROOT + "/exportConfig/" + Common.config.moosnowAppId + "1.json?t=" + Date.now();
+            var url = ROOT_CONFIG.HTTP_ROOT + "/exportConfig/" + Common.config.moosnowAppId + ".json?t=" + Date.now();
             moosnow.http.request(url, {}, 'GET', function (res) {
                 cb(res);
                 console.log('WXAdModule getRemoteAd', res);
