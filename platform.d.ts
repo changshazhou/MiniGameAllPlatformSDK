@@ -339,7 +339,11 @@ declare class PlatformModule extends BaseModule {
     private _onShareback;
     private _initLoginButton;
     initRecord(): void;
-    clipRecord(): void;
+    /**
+     * 裁剪视频
+     * @param timeRange 默认[2,2] 裁剪视频时保留的前后时长
+     */
+    clipRecord(timeRange?: Array<number>): void;
     /**
      * 开始录屏
      * @param duration 录屏时长
