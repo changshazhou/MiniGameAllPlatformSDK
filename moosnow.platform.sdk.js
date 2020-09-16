@@ -4230,7 +4230,7 @@ var mx = (function () {
                 timeRange: timeRange,
                 success: function (r) {
                     console.log('clipRecord 成功 ', r);
-                    if (Common.isFunction(r))
+                    if (Common.isFunction(callback))
                         callback(r);
                 }
             });
