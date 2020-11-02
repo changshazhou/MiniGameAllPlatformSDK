@@ -817,7 +817,6 @@ var mx = (function () {
         function PlatformModule() {
             var _this = _super.call(this) || this;
             _this.baseUrl = "https://api.liteplay.com.cn/";
-            _this.currentShareCallback = null;
             _this.currentShortCall = null;
             _this.shareFail = null;
             _this.vibrateOn = false;
@@ -1098,6 +1097,45 @@ var mx = (function () {
                 return;
             window[this.platformName].getOpenDataContext().postMessage(data);
         };
+        PlatformModule.prototype.navigate2Video = function (videoid) {
+        };
+        PlatformModule.prototype.getClipboardData = function (success, fail) {
+            if (!window[this.platformName])
+                return;
+            if (!window[this.platformName].getClipboardData)
+                return;
+            window[this.platformName].getClipboardData({
+                success: function (res) {
+                    if (success)
+                        success(res.data);
+                    console.log("" + res.data);
+                },
+                fail: function (res) {
+                    if (fail)
+                        fail(res);
+                    console.log("getClipboardData\u8C03\u7528\u5931\u8D25");
+                },
+            });
+        };
+        PlatformModule.prototype.setClipboardData = function (msg, success, fail) {
+            if (!window[this.platformName])
+                return;
+            if (!window[this.platformName].setClipboardData)
+                return;
+            window[this.platformName].setClipboardData({
+                data: msg,
+                success: function (res) {
+                    if (success)
+                        success(res);
+                    console.log("setClipboardData\u8C03\u7528\u6210\u529F");
+                },
+                fail: function (res) {
+                    if (fail)
+                        fail(res);
+                    console.log("setClipboardData\u8C03\u7528\u5931\u8D25");
+                },
+            });
+        };
         /**
          * 跳转到指定App
          * @param row  跳转数据
@@ -1129,12 +1167,15 @@ var mx = (function () {
                     path: path,
                     extraData: extraData,
                     success: function () {
-                        moosnow.http.point("跳转", {
+                        var param = {
                             position: row.position,
                             appid: appid,
                             img: row.atlas || row.img,
-                            scene: launchOption.scene
-                        });
+                            scene: launchOption.scene,
+                            wxgamecid: launchOption.query.wxgamecid
+                        };
+                        console.log('跳转参数', param);
+                        moosnow.http.point("跳转", param);
                         moosnow.http.navigateEnd(res.code);
                         moosnow.http.exportUser();
                         if (success)
@@ -1985,6 +2026,7 @@ var mx = (function () {
             this.video.load()
                 .then(function () {
                 if (show) {
+                    moosnow.platform.videoPlaying = true;
                     _this.video.show().then(function () { }).catch(function (err) {
                         _this._onVideoError(err.errMsg, err.errCode);
                         console.log(err.errMsg);
@@ -2008,6 +2050,7 @@ var mx = (function () {
             console.log(MSG.VIDEO_CLOSE_COMPLETED, isEnd.isEnded);
             moosnow.platform.videoLoading = false;
             moosnow.platform.videoPlaying = false;
+            moosnow.event.sendEventImmediately(EventType.ON_PLATFORM_SHOW, null);
             if (!!isEnd.isEnded) {
                 moosnow.http.clickVideo();
             }
@@ -2203,10 +2246,10 @@ var mx = (function () {
             if (success)
                 success(true);
         };
-        PlatformModule.prototype.hasShortcutInstalled = function (success) {
+        PlatformModule.prototype.hasShortcutInstalled = function (success, fail) {
             success(false);
         };
-        PlatformModule.prototype.installShortcut = function (success, message) {
+        PlatformModule.prototype.installShortcut = function (success, message, fail) {
             if (message === void 0) { message = "方便下次快速启动"; }
         };
         PlatformModule.prototype.onDisable = function () {
@@ -2227,10 +2270,10 @@ var mx = (function () {
             _this._regisiterWXCallback();
             _this.initBanner();
             _this.initInter();
-            setTimeout(function () {
-                _this.initVideo();
-            }, 1);
             return _this;
+            // setTimeout(() => {
+            //     this.initVideo();
+            // }, 1)
         }
         /**
          * 游戏登录
@@ -2983,7 +3026,7 @@ var mx = (function () {
                                 exportAutoNavigate = 0;
                             if (res.exportAutoNavigate == 2)
                                 exportAutoNavigate = 1;
-                            callback(__assign(__assign({}, res), { mistouchNum: 0, mistouchPosNum: 0, mistouchInterval: 0, exportBtnNavigate: 0, checkBoxMistouch: 0, exportAutoNavigate: exportAutoNavigate, bannerShowCountLimit: 1, isLimitArea: 1, nativeErrorShowInter: 0, bannerErrorShowInter: 0 }));
+                            callback(__assign(__assign({}, res), { mistouchNum: 0, mistouchPosNum: 0, mistouchInterval: 0, exportBtnNavigate: 0, checkBoxMistouch: 0, exportAutoNavigate: exportAutoNavigate, bannerShowCountLimit: 1, isLimitArea: 1, nativeErrorShowInter: 0, bannerErrorShowInter: 0, delayShow: 0 }));
                         }
                         else {
                             if (res.exportAutoNavigate == 1)
@@ -3015,7 +3058,7 @@ var mx = (function () {
                     var mistouchOn = res && res.mistouchOn == 1 ? true : false;
                     if (!mistouchOn)
                         console.log('总开关已关闭----------------');
-                    _this.cfgData = __assign(__assign({ checkBoxProbabilitys: [100, 0, 0, 0, 0] }, Common.deepCopy(res)), { zs_native_click_switch: res && res.mx_native_click_switch ? res.mx_native_click_switch : 0, zs_jump_switch: res && res.mx_jump_switch ? res.mx_jump_switch : 0, mistouchNum: mistouchOn ? res.mistouchNum : 0, mistouchPosNum: mistouchOn ? res.mistouchPosNum : 0, mistouchInterval: mistouchOn ? res.mistouchInterval : 0, exportAutoNavigate: mistouchOn ? res.exportAutoNavigate : 0, exportBtnNavigate: mistouchOn ? res.exportBtnNavigate : 0, checkBoxMistouch: mistouchOn ? res.checkBoxMistouch : 0, nativeErrorShowInter: mistouchOn ? res.nativeErrorShowInter : 0, bannerErrorShowInter: mistouchOn ? res.bannerErrorShowInter : 0 });
+                    _this.cfgData = __assign(__assign({ checkBoxProbabilitys: [100, 0, 0, 0, 0] }, Common.deepCopy(res)), { zs_native_click_switch: res && res.mx_native_click_switch ? res.mx_native_click_switch : 0, zs_jump_switch: res && res.mx_jump_switch ? res.mx_jump_switch : 0, mistouchNum: mistouchOn ? res.mistouchNum : 0, mistouchPosNum: mistouchOn ? res.mistouchPosNum : 0, mistouchInterval: mistouchOn ? res.mistouchInterval : 0, exportAutoNavigate: mistouchOn ? res.exportAutoNavigate : 0, exportBtnNavigate: mistouchOn ? res.exportBtnNavigate : 0, checkBoxMistouch: mistouchOn ? res.checkBoxMistouch : 0, nativeErrorShowInter: mistouchOn ? res.nativeErrorShowInter : 0, bannerErrorShowInter: mistouchOn ? res.bannerErrorShowInter : 0, delayShow: mistouchOn ? res.delayShow : 0 });
                     if (moosnow.platform) {
                         if (res) {
                             if (!isNaN(res.bannerShowCountLimit))
@@ -3837,7 +3880,7 @@ var mx = (function () {
                     this.mClickedNativeCallback();
             }
         };
-        OPPOModule.prototype.hasShortcutInstalled = function (success) {
+        OPPOModule.prototype.hasShortcutInstalled = function (success, fail) {
             if (!window[this.platformName])
                 return;
             if (!window[this.platformName].hasShortcutInstalled)
@@ -3852,10 +3895,14 @@ var mx = (function () {
                     else {
                         console.log('未创建');
                     }
+                },
+                fail: function (res) {
+                    if (fail)
+                        fail(res);
                 }
             });
         };
-        OPPOModule.prototype.installShortcut = function (success, message) {
+        OPPOModule.prototype.installShortcut = function (success, message, fail) {
             if (message === void 0) { message = "方便下次快速启动"; }
             if (!window[this.platformName])
                 return;
@@ -3865,8 +3912,12 @@ var mx = (function () {
                 message: message,
                 success: function (status) {
                     if (success)
-                        success();
+                        success(status);
                     console.log('创建成功');
+                },
+                fail: function (res) {
+                    if (fail)
+                        fail(res);
                 }
             });
         };
@@ -4408,6 +4459,7 @@ var mx = (function () {
                 channel = query.channel;
             }
             // console.log('this. recordRes ', this.recordRes)
+            //"https://liteplay-1253992229.cos.ap-guangzhou.myqcloud.com/1.mp4";//
             var videoPath = (this.recordRes && this.recordRes.videoPath) ? this.recordRes.videoPath : "";
             console.log('video path ', videoPath);
             return {
@@ -4417,10 +4469,12 @@ var mx = (function () {
                 query: moosnow.http._object2Query(query),
                 extra: {
                     videoPath: videoPath,
-                    videoTopics: [title]
+                    videoTopics: [title],
+                    withVideoId: true,
                 },
-                success: function () {
-                    console.log('share video success ');
+                success: function (res) {
+                    console.log('share video success :', res);
+                    _this.shareVideoId = res.videoId;
                     if (_this.currentShareCallback)
                         _this.currentShareCallback(true);
                 },
@@ -4435,6 +4489,30 @@ var mx = (function () {
                         _this.currentShareCallback(false);
                 }
             };
+        };
+        TTModule.prototype.navigate2Video = function (videoId) {
+            if (!window[this.platformName])
+                return;
+            if (!window[this.platformName].navigateToVideoView)
+                return;
+            console.log("navigate2Video id ", videoId || this.shareVideoId, videoId, this.shareVideoId);
+            if (!(videoId || this.shareVideoId))
+                return;
+            window[this.platformName].navigateToVideoView({
+                videoId: videoId || this.shareVideoId,
+                success: function (res) {
+                    /* res结构： {errMsg: string } */
+                    console.log("navigate2Video success ", res);
+                },
+                fail: function (err) {
+                    console.log("navigate2Video err ", err);
+                    if (err.errCode === 1006) {
+                        // tt.showToast({
+                        //     title: "something wrong with your network",
+                        // });
+                    }
+                },
+            });
         };
         TTModule.prototype._onBannerLoad = function () {
             this.bannerShowCount = 0;
@@ -4466,7 +4544,7 @@ var mx = (function () {
             var top = 0;
             if (this.isLandscape(windowHeight, windowWidth)) {
                 if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
-                    top = windowHeight - this.bannerHeigth - 30;
+                    top = windowHeight - this.bannerHeigth;
                 }
                 else if (this.bannerPosition == BANNER_POSITION.CENTER)
                     top = (windowHeight - this.bannerHeigth) / 2;
@@ -4475,7 +4553,7 @@ var mx = (function () {
             }
             else {
                 if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
-                    top = windowHeight - this.bannerHeigth - 30;
+                    top = windowHeight - this.bannerHeigth;
                 }
                 else if (this.bannerPosition == BANNER_POSITION.CENTER)
                     top = (windowHeight - this.bannerHeigth) / 2;
@@ -5956,6 +6034,20 @@ var mx = (function () {
                 console.warn(MSG.VIDEO_KEY_IS_NULL);
                 return;
             }
+            if (!this.mVideoTime) {
+                this.mVideoTime = Date.now();
+            }
+            else {
+                if (Date.now() - this.mVideoTime < 10 * 1000) {
+                    if (moosnow.platform.videoCb) {
+                        moosnow.platform.videoCb(VIDEO_STATUS.ERR);
+                    }
+                    return;
+                }
+                else {
+                    this.mVideoTime = Date.now();
+                }
+            }
             if (!this.video) {
                 moosnow.platform.videoLoading = true;
                 this.video = window[this.platformName].createRewardedVideoAd({
@@ -5980,6 +6072,9 @@ var mx = (function () {
                     console.log('激励视频广告展示完成');
                 }).catch(function (err) {
                     console.log('激励视频广告展示失败', JSON.stringify(err));
+                    if (moosnow.platform.videoCb) {
+                        moosnow.platform.videoCb(VIDEO_STATUS.ERR);
+                    }
                 });
             }
         };
@@ -6211,7 +6306,7 @@ var mx = (function () {
                     this.mClickedNativeCallback();
             }
         };
-        VIVOModule.prototype.hasShortcutInstalled = function (success) {
+        VIVOModule.prototype.hasShortcutInstalled = function (success, fail) {
             if (!window[this.platformName])
                 return;
             if (!window[this.platformName].hasShortcutInstalled)
@@ -6226,10 +6321,14 @@ var mx = (function () {
                     else {
                         console.log('未创建');
                     }
+                },
+                fail: function (res) {
+                    if (fail)
+                        fail(res);
                 }
             });
         };
-        VIVOModule.prototype.installShortcut = function (success, message) {
+        VIVOModule.prototype.installShortcut = function (success, message, fail) {
             if (message === void 0) { message = "方便下次快速启动"; }
             if (!window[this.platformName])
                 return;
@@ -6239,8 +6338,12 @@ var mx = (function () {
                 message: message,
                 success: function (status) {
                     if (success)
-                        success();
+                        success(status);
                     console.log('创建成功');
+                },
+                fail: function (res) {
+                    if (fail)
+                        fail(res);
                 }
             });
         };
