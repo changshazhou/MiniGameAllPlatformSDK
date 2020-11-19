@@ -759,14 +759,27 @@ var mx = (function () {
         return BaseModule;
     }());
 
-    var BANNER_POSITION = {
-        TOP: "__banner_top",
-        CENTER: "__banner_center",
-        BOTTOM: "__banner_bottom",
-        CUSTOM: "__banner_custom",
-        LEFT_BOTTOM: "__banner_left_bottom",
-        RIGHT_BOTTOM: "__banner_right_bottom"
-    };
+    var BANNER_HORIZONTAL = /** @class */ (function () {
+        function BANNER_HORIZONTAL() {
+        }
+        BANNER_HORIZONTAL.NONE = 0;
+        BANNER_HORIZONTAL.LEFT = 1;
+        BANNER_HORIZONTAL.RIGHT = 2;
+        BANNER_HORIZONTAL.CENTER = 8;
+        return BANNER_HORIZONTAL;
+    }());
+    /**
+     * 垂直方向
+     */
+    var BANNER_VERTICAL = /** @class */ (function () {
+        function BANNER_VERTICAL() {
+        }
+        BANNER_VERTICAL.NONE = 16;
+        BANNER_VERTICAL.TOP = 32;
+        BANNER_VERTICAL.CENTER = 64;
+        BANNER_VERTICAL.BOTTOM = 128;
+        return BANNER_VERTICAL;
+    }());
 
     var VIDEO_STATUS = {
         END: "__video_end",
@@ -820,6 +833,28 @@ var mx = (function () {
         PLATFORM_UNSUPPORT: "版本过低 平台不支持"
     };
 
+    var BLOCK_HORIZONTAL = /** @class */ (function () {
+        function BLOCK_HORIZONTAL() {
+        }
+        BLOCK_HORIZONTAL.NONE = 0;
+        BLOCK_HORIZONTAL.LEFT = 1;
+        BLOCK_HORIZONTAL.RIGHT = 2;
+        BLOCK_HORIZONTAL.CENTER = 8;
+        return BLOCK_HORIZONTAL;
+    }());
+    /**
+     * 垂直方向
+     */
+    var BLOCK_VERTICAL = /** @class */ (function () {
+        function BLOCK_VERTICAL() {
+        }
+        BLOCK_VERTICAL.NONE = 16;
+        BLOCK_VERTICAL.TOP = 32;
+        BLOCK_VERTICAL.CENTER = 64;
+        BLOCK_VERTICAL.BOTTOM = 128;
+        return BLOCK_VERTICAL;
+    }());
+
     // var videoLoading: boolean = false;
     // var videoCb = null;
     var PlatformModule = /** @class */ (function (_super) {
@@ -850,15 +885,20 @@ var mx = (function () {
             _this.nativeIdIndex = 0;
             _this.bannerWidth = 300;
             _this.bannerHeigth = 96;
+            _this.bannerHorizontal = BANNER_HORIZONTAL.NONE;
+            _this.bannerVertical = BANNER_VERTICAL.NONE;
             _this.bannerShowCount = 0;
             _this.bannerShowCountLimit = 3;
             _this.bannerShowTime = 0;
             _this.bannerShowTimeLimit = 15;
             _this.bannerLimitType = 0;
             _this.bannerCb = null;
-            _this.bannerPosition = BANNER_POSITION.BOTTOM;
             _this.bannerStyle = null;
             _this.isBannerShow = false;
+            _this.blockWidth = 300;
+            _this.blockHeigth = 96;
+            _this.blockHorizontal = BLOCK_HORIZONTAL.NONE;
+            _this.blockVertical = BLOCK_VERTICAL.NONE;
             _this.videoCb = null;
             _this.videoLoading = false;
             _this.videoPlaying = false;
@@ -1092,7 +1132,7 @@ var mx = (function () {
         };
         PlatformModule.prototype.checkLog = function (remoteVersion) {
             var configVersion = moosnow.platform.moosnowConfig.version;
-            var versionRet = remoteVersion == configVersion;
+            var versionRet = remoteVersion != configVersion;
             console.log("\u7248\u672C\u68C0\u67E5 \u540E\u53F0\u7248\u672C" + remoteVersion + " \u914D\u7F6E\u6587\u4EF6\u7248\u672C" + configVersion);
             console.log("获取广告开关：", versionRet);
             return versionRet;
@@ -1772,6 +1812,7 @@ var mx = (function () {
                 this.banner = null;
             }
             this.banner = this._createBannerAd();
+            console.log("_prepareBanner -> this.banner", this.banner);
             if (this.banner) {
                 this.banner.onResize(this._bottomCenterBanner.bind(this));
                 this.banner.onError(this._onBannerError.bind(this));
@@ -1783,21 +1824,18 @@ var mx = (function () {
                 return;
             if (!window[this.platformName].createBannerAd)
                 return;
-            var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            var windowHeight = wxsys.windowHeight;
-            var left = (windowWidth - this.bannerWidth) / 2;
             var bannerId = this.bannerId;
             if (Common.isEmpty(bannerId)) {
                 console.warn(MSG.BANNER_KEY_IS_NULL);
                 return;
             }
             this.bannerShowTime = Date.now();
+            var style = this._getBannerPosition();
             var banner = window[this.platformName].createBannerAd({
                 adUnitId: bannerId,
                 style: {
-                    top: windowHeight - this.bannerHeigth,
-                    left: left,
+                    top: style.top,
+                    left: style.left,
                     width: this.bannerWidth
                 }
             });
@@ -1814,6 +1852,7 @@ var mx = (function () {
             moosnow.event.sendEventImmediately(EventType.ON_BANNER_ERROR, null);
         };
         PlatformModule.prototype._bottomCenterBanner = function (size) {
+            console.log("_bottomCenterBanner -> size", size);
             // if (Common.isEmpty(size)) {
             //     console.log('设置的banner尺寸为空,不做调整')
             //     return;
@@ -1823,47 +1862,24 @@ var mx = (function () {
             // let windowHeight = wxsys.windowHeight;
             // this.banner.style.height = size.height;
             // this.banner.style.top = windowHeight - size.height;
-            this.bannerWidth = this.banner.style.realWidth;
-            this.bannerHeigth = this.banner.style.realHeight;
+            if (!isNaN(this.banner.style.realWidth))
+                this.bannerWidth = this.banner.style.realWidth;
+            if (!isNaN(this.banner.style.realHeight))
+                this.bannerHeigth = this.banner.style.realHeight;
+            console.log("_bottomCenterBanner -> this.banner.style", this.banner.style);
             if (this.bannerStyle)
                 this.applyCustomStyle();
             else
                 this.banner.style.left = (windowWidth - size.width) / 2;
-            console.log('_bottomCenterBanner', this.banner.style);
         };
         PlatformModule.prototype._resetBanenrStyle = function (size) {
-            if (Common.isEmpty(size)) {
-                console.log('设置的banner尺寸为空,不做调整');
-                return;
-            }
-            var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            var windowHeight = wxsys.windowHeight;
-            var top = 0;
-            if (this.bannerPosition == BANNER_POSITION.BOTTOM
-                || this.bannerPosition == BANNER_POSITION.LEFT_BOTTOM
-                || this.bannerPosition == BANNER_POSITION.RIGHT_BOTTOM) {
-                top = windowHeight - this.bannerHeigth;
-            }
-            else if (this.bannerPosition == BANNER_POSITION.CENTER)
-                top = (windowHeight - this.bannerHeigth) / 2;
-            else if (this.bannerPosition == BANNER_POSITION.TOP)
-                top = 0;
-            if (this.bannerPosition == BANNER_POSITION.LEFT_BOTTOM) {
-                this.banner.style.left = 0;
-            }
-            else if (this.bannerPosition == BANNER_POSITION.RIGHT_BOTTOM) {
-                this.banner.style.top = windowWidth - this.bannerWidth;
-            }
-            else {
-                var left = (windowWidth - this.bannerWidth) / 2;
-                this.banner.style.left = left;
-            }
             if (this.bannerStyle) {
                 this.applyCustomStyle();
             }
             else {
-                this.banner.style.top = top;
+                var style = this._getBannerPosition();
+                this.banner.style.top = style.top;
+                this.banner.style.left = style.left;
                 console.log(MSG.BANNER_RESIZE, this.banner.style, 'set top ', top);
             }
         };
@@ -1872,6 +1888,44 @@ var mx = (function () {
                 this.banner.style[key] = this.bannerStyle[key];
             }
         };
+        PlatformModule.prototype._getBannerPosition = function () {
+            var horizontal = this.bannerHorizontal;
+            var vertical = this.bannerVertical;
+            console.log("_getBannerPosition -> horizontal", horizontal);
+            console.log("_getBannerPosition -> vertical", vertical);
+            var wxsys = this.getSystemInfoSync();
+            var windowWidth = wxsys.windowWidth;
+            var windowHeight = wxsys.windowHeight;
+            var top = 0;
+            var left = 0;
+            if (vertical == BANNER_VERTICAL.TOP) {
+                top = 0;
+            }
+            else if (vertical == BANNER_VERTICAL.CENTER) {
+                top = (windowHeight - this.bannerHeigth) / 2;
+            }
+            else if (vertical == BANNER_VERTICAL.BOTTOM) {
+                top = windowHeight - this.bannerHeigth;
+            }
+            if (horizontal == BANNER_HORIZONTAL.LEFT) {
+                left = 0;
+            }
+            else if (horizontal == BANNER_HORIZONTAL.RIGHT) {
+                left = windowWidth - this.bannerWidth;
+            }
+            else if (horizontal == BANNER_HORIZONTAL.CENTER) {
+                left = (windowWidth - this.bannerWidth) / 2;
+            }
+            console.log("QQModule -> _getBannerPosition -> left", left, 'top', top);
+            // return {
+            //     left: 16,
+            //     top: 16,
+            // }
+            return {
+                left: left,
+                top: top,
+            };
+        };
         /**
           * 显示平台的banner广告
           * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
@@ -1879,17 +1933,19 @@ var mx = (function () {
           * @param position banner的位置，默认底部
           * @param style 自定义样式
           */
-        PlatformModule.prototype.showBanner = function (remoteOn, callback, position, style) {
+        PlatformModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
-            if (position === void 0) { position = BANNER_POSITION.BOTTOM; }
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.CENTER; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.BOTTOM; }
             console.log(MSG.BANNER_SHOW);
             this.bannerCb = callback;
             this.isBannerShow = true;
             if (!window[this.platformName]) {
                 return;
             }
-            this.bannerPosition = position;
+            this.bannerHorizontal = horizontal;
+            this.bannerVertical = vertical;
             this.bannerStyle = style;
             if (this.mTimeoutId) {
                 clearTimeout(this.mTimeoutId);
@@ -1939,25 +1995,25 @@ var mx = (function () {
          * 一般用游戏中
          * @param position banner的位置，默认底部
          */
-        PlatformModule.prototype.showAutoBanner = function (position) {
-            var _this = this;
-            if (position === void 0) { position = BANNER_POSITION.BOTTOM; }
+        PlatformModule.prototype.showAutoBanner = function (horizontal, vertical) {
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.NONE; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.NONE; }
             console.log('执行自动显示和隐藏Banner功能');
-            moosnow.http.getAllConfig(function (res) {
-                if (res && res.gameBanner == 1) {
-                    moosnow.platform.showBanner(true, function () { }, position);
-                    var time = isNaN(res.gameBanenrHideTime) ? 1 : parseFloat(res.gameBanenrHideTime);
-                    _this.mTimeoutId = setTimeout(function () {
-                        console.log('自动隐藏时间已到，开始隐藏Banner');
-                        if (_this.isBannerShow) {
-                            _this.hideBanner();
-                        }
-                        else {
-                            _this.hideBanner();
-                        }
-                    }, time * 1000);
-                }
-            });
+            // moosnow.http.getAllConfig(res => {
+            //     if (res && res.gameBanner == 1) {
+            //         moosnow.platform.showBanner(true, () => { }, horizontal, vertical);
+            //         let time = isNaN(res.gameBanenrHideTime) ? 1 : parseFloat(res.gameBanenrHideTime);
+            //         this.mTimeoutId = setTimeout(() => {
+            //             console.log('自动隐藏时间已到，开始隐藏Banner')
+            //             if (this.isBannerShow) {
+            //                 this.hideBanner();
+            //             }
+            //             else {
+            //                 this.hideBanner();
+            //             }
+            //         }, time * 1000)
+            //     }
+            // })
         };
         PlatformModule.prototype.exitApplication = function () {
         };
@@ -1965,14 +2021,15 @@ var mx = (function () {
          * 连续不断的显示和隐藏 banner
          * @param position
          */
-        PlatformModule.prototype.showIntervalBanner = function (position) {
+        PlatformModule.prototype.showIntervalBanner = function (horizontal, vertical) {
             var _this = this;
-            if (position === void 0) { position = BANNER_POSITION.BOTTOM; }
+            if (horizontal === void 0) { horizontal = BLOCK_HORIZONTAL.NONE; }
+            if (vertical === void 0) { vertical = BLOCK_VERTICAL.NONE; }
             console.log('执行 showIntervalBanner');
             moosnow.http.getAllConfig(function (res) {
                 var gameBannerInterval = res && !isNaN(res.gameBannerInterval) ? parseFloat(res.gameBannerInterval) : 20;
-                _this.showAutoBanner(position);
-                _this.schedule(_this.showAutoBanner, gameBannerInterval, [position]);
+                // this.showAutoBanner(horizontal, vertical);
+                _this.schedule(_this.showAutoBanner, gameBannerInterval, [horizontal, vertical]);
             });
         };
         /**
@@ -2297,6 +2354,14 @@ var mx = (function () {
         };
         PlatformModule.prototype.onDisable = function () {
         };
+        PlatformModule.prototype.showBlock = function (horizontal, vertical, orientation, size) {
+            if (horizontal === void 0) { horizontal = BLOCK_HORIZONTAL.NONE; }
+            if (vertical === void 0) { vertical = BLOCK_VERTICAL.NONE; }
+            if (orientation === void 0) { orientation = 1; }
+            if (size === void 0) { size = 5; }
+        };
+        PlatformModule.prototype.hideBlock = function () {
+        };
         return PlatformModule;
     }(BaseModule));
 
@@ -2381,6 +2446,7 @@ var mx = (function () {
                 scene: scene,
                 fromApp: fromApp
             }, "POST", function (respone) {
+                console.log("WXModule -> getUserToken -> respone", respone);
                 if (respone.code == 0 && respone.data && respone.data.user_id) {
                     moosnow.data.setToken(respone.data.user_id);
                 }
@@ -2999,21 +3065,31 @@ var mx = (function () {
                 if (window['wx'] && window['wx'].aldSendEvent)
                     window['wx'].aldSendEvent(name, data);
             }
+            else if (Common.platform == PlatformType.BYTEDANCE) {
+                window["tt"].reportAnalytics(name, data);
+            }
         };
         /**
         * 统计开始游戏
         * @param {string} level 关卡数 必须是1 || 2 || 1.1 || 12.2 格式
         */
         HttpModule.prototype.startGame = function (level) {
-            if (Common.platform == PlatformType.WX)
+            var e = {
+                stageId: "" + level,
+                stageName: "" + level,
+                userId: moosnow.data.getToken() //用户ID
+            };
+            if (Common.platform == PlatformType.WX) {
                 if (window['wx'] && window['wx'].aldStage)
-                    window['wx'].aldStage.onStart({
-                        stageId: "" + level,
-                        stageName: "" + level,
-                        userId: moosnow.data.getToken() //用户ID
-                    });
+                    window['wx'].aldStage.onStart(e);
                 else
                     console.warn(MSG.ALD_FILE_NO_IMPORT);
+            }
+            else if (Common.platform == PlatformType.BYTEDANCE) {
+                window["tt"].reportAnalytics(name, e);
+            }
+            else
+                console.log("startGame -> e", e);
         };
         /**
          * 统计结束游戏
@@ -3021,22 +3097,28 @@ var mx = (function () {
          * @param {boolean} isWin 是否成功
          */
         HttpModule.prototype.endGame = function (level, isWin) {
-            if (Common.platform != PlatformType.WX)
-                return;
             var event = isWin ? "complete" : "fail";
             var desc = isWin ? "关卡完成" : "关卡失败";
-            if (window['wx'] && window['wx'].aldStage)
-                window['wx'].aldStage.onEnd({
-                    stageId: "" + level,
-                    stageName: "" + level,
-                    userId: moosnow.data.getToken(),
-                    event: event,
-                    params: {
-                        desc: desc //描述
-                    }
-                });
+            var e = {
+                stageId: "" + level,
+                stageName: "" + level,
+                userId: moosnow.data.getToken(),
+                event: event,
+                params: {
+                    desc: desc //描述
+                }
+            };
+            if (Common.platform == PlatformType.WX) {
+                if (window['wx'] && window['wx'].aldStage)
+                    window['wx'].aldStage.onEnd(e);
+                else
+                    console.warn(MSG.ALD_FILE_NO_IMPORT);
+            }
+            else if (Common.platform == PlatformType.BYTEDANCE) {
+                window["tt"].reportAnalytics(desc, e);
+            }
             else
-                console.warn(MSG.ALD_FILE_NO_IMPORT);
+                console.log("startGame -> e", e);
         };
         /**
          * 视频统计
@@ -3045,13 +3127,19 @@ var mx = (function () {
          * @param {string} level 关卡数
          */
         HttpModule.prototype.videoPoint = function (type, info, level) {
-            if (Common.platform != PlatformType.WX)
-                return;
             var name = type == 0 ? "点击视频" : "观看完成视频";
-            if (window['wx'] && window['wx'].aldSendEvent)
-                window['wx'].aldSendEvent(name, { info: info, level: level + "" });
+            var e = { info: info, level: level + "" };
+            if (Common.platform == PlatformType.WX) {
+                if (window['wx'] && window['wx'].aldSendEvent)
+                    window['wx'].aldSendEvent(name, e);
+                else
+                    console.warn(MSG.ALD_FILE_NO_IMPORT);
+            }
+            else if (Common.platform == PlatformType.BYTEDANCE) {
+                window["tt"].reportAnalytics(name, e);
+            }
             else
-                console.warn(MSG.ALD_FILE_NO_IMPORT);
+                console.log("startGame -> e", e);
         };
         /**
          *
@@ -3060,27 +3148,114 @@ var mx = (function () {
         HttpModule.prototype.getAllConfig = function (callback) {
             var _this = this;
             this.loadCfg(function (res) {
-                _this.loadArea(function (res2) {
-                    _this.disableAd(res, res2, function (disable) {
-                        var exportAutoNavigate = 0;
-                        if (disable) {
-                            //exportAutoNavigate 是否自动唤起跳转（强导） 0 关闭 1 开启(受屏蔽地区影响) 2开启（不受屏蔽地区影响）
-                            if (res.exportAutoNavigate == 1)
-                                exportAutoNavigate = 0;
-                            if (res.exportAutoNavigate == 2)
-                                exportAutoNavigate = 1;
-                            callback(__assign(__assign({}, res), { mistouchNum: 0, mistouchPosNum: 0, mistouchInterval: 0, exportBtnNavigate: 0, checkBoxMistouch: 0, exportAutoNavigate: exportAutoNavigate, bannerShowCountLimit: 1, isLimitArea: 1, nativeErrorShowInter: 0, bannerErrorShowInter: 0, delayShow: 0 }));
-                        }
-                        else {
-                            if (res.exportAutoNavigate == 1)
-                                exportAutoNavigate = 1;
-                            if (res.exportAutoNavigate == 2)
-                                exportAutoNavigate = 1;
-                            callback(__assign(__assign({}, res), { exportAutoNavigate: exportAutoNavigate, isLimitArea: 0 }));
-                        }
+                if (res.inWhite) {
+                    callback(__assign(__assign({}, res), { exportAutoNavigate: 1, isLimitArea: 0 }));
+                }
+                else {
+                    _this.loadArea(function (res2) {
+                        _this.disableAd(res, res2, function (disable) {
+                            var exportAutoNavigate = 0;
+                            if (disable) {
+                                //exportAutoNavigate 是否自动唤起跳转（强导） 0 关闭 1 开启(受屏蔽地区影响) 2开启（不受屏蔽地区影响）
+                                if (res.exportAutoNavigate == 1)
+                                    exportAutoNavigate = 0;
+                                if (res.exportAutoNavigate == 2)
+                                    exportAutoNavigate = 1;
+                                callback(__assign(__assign({ isLimitArea: 1 }, res), _this.getCfg(false)));
+                            }
+                            else {
+                                if (res.exportAutoNavigate == 1)
+                                    exportAutoNavigate = 1;
+                                if (res.exportAutoNavigate == 2)
+                                    exportAutoNavigate = 1;
+                                callback(__assign(__assign({}, res), { exportAutoNavigate: exportAutoNavigate, isLimitArea: 0 }));
+                            }
+                        });
                     });
-                });
+                }
             });
+        };
+        HttpModule.prototype.getCfg = function (open) {
+            var cfg = {
+                checkBoxMistouch: 0,
+                checkBoxProbabilitys: [100, 0, 0, 0, 0],
+                mistouchNum: 0,
+                mistouchPosNum: 0,
+                bannerShowCountLimit: 1,
+                exportBtnNavigate: 0,
+                exportAutoNavigate: 0,
+                delayShow: 0,
+                showAppBox: 0,
+                zs_native_click_switch: 0,
+                zs_jump_switch: 0,
+                mx_native_click_switch: 0,
+                mx_jump_switch: 0,
+                mistouchInterval: 0,
+                nativeErrorShowInter: 0,
+                bannerErrorShowInter: 0,
+                isStartMistouch: 0,
+                isStartVideo: 0,
+                loadingAdOn: 0,
+            };
+            if (open) {
+                for (var key in cfg) {
+                    if (!isNaN(cfg[key]))
+                        cfg[key] = 1;
+                }
+            }
+            return cfg;
+        };
+        /**
+         *
+         * @param res
+         * @param applyRemote 使用后台数据
+         */
+        HttpModule.prototype.defaultCfg = function (res, applyRemote) {
+            var cfg = this.getCfg(false);
+            if (res) {
+                console.warn("defaultCfg -> moosnow.data.getToken()", moosnow.data.getToken());
+                console.warn("defaultCfg -> res.whitelist", res.whitelist);
+                if (res.whitelist) {
+                    var token = moosnow.data.getToken();
+                    var inWhite = false;
+                    for (var i = 0; i < res.whitelist.length; i++) {
+                        if (token == res.whitelist[i]) {
+                            inWhite = true;
+                            break;
+                        }
+                    }
+                    if (inWhite) {
+                        console.warn("白名单前 -> cfg", cfg);
+                        cfg = __assign(__assign({ inWhite: inWhite }, cfg), this.getCfg(true));
+                        console.warn("白名单后 -> cfg", cfg);
+                    }
+                }
+                if (applyRemote) {
+                    for (var key in res) {
+                        if (!isNaN(cfg[key]))
+                            cfg[key] = res[key];
+                        else
+                            cfg[key] = res[key];
+                    }
+                }
+                else {
+                    for (var key in res) {
+                        if (!cfg[key])
+                            cfg[key] = res[key];
+                    }
+                }
+            }
+            if (moosnow.platform) {
+                if (res) {
+                    if (!isNaN(res.bannerShowCountLimit))
+                        moosnow.platform.bannerShowCountLimit = parseInt(res.bannerShowCountLimit);
+                    if (!isNaN(res.bannerLimitType))
+                        moosnow.platform.bannerLimitType = parseInt(res.bannerLimitType);
+                    if (!isNaN(res.bannerShowTimeLimit))
+                        moosnow.platform.bannerShowTimeLimit = parseInt(res.bannerShowTimeLimit);
+                }
+            }
+            return cfg;
         };
         HttpModule.prototype.loadCfg = function (callback) {
             var _this = this;
@@ -3097,35 +3272,27 @@ var mx = (function () {
                 else
                     url = ROOT_CONFIG.HTTP_ROOT + "/config/" + Common.config.moosnowAppId + ".json?t=" + Date.now();
                 this.request(url, {}, 'GET', function (res) {
-                    //总开关控制
-                    var mistouchOn = res && res.mistouchOn == 1 ? true : false;
-                    if (!mistouchOn)
-                        console.log('总开关已关闭----------------');
-                    _this.cfgData = __assign(__assign({ checkBoxProbabilitys: [100, 0, 0, 0, 0] }, Common.deepCopy(res)), { zs_native_click_switch: res && res.mx_native_click_switch ? res.mx_native_click_switch : 0, zs_jump_switch: res && res.mx_jump_switch ? res.mx_jump_switch : 0, mistouchNum: mistouchOn ? res.mistouchNum : 0, mistouchPosNum: mistouchOn ? res.mistouchPosNum : 0, mistouchInterval: mistouchOn ? res.mistouchInterval : 0, exportAutoNavigate: mistouchOn ? res.exportAutoNavigate : 0, exportBtnNavigate: mistouchOn ? res.exportBtnNavigate : 0, checkBoxMistouch: mistouchOn ? res.checkBoxMistouch : 0, nativeErrorShowInter: mistouchOn ? res.nativeErrorShowInter : 0, bannerErrorShowInter: mistouchOn ? res.bannerErrorShowInter : 0, delayShow: mistouchOn ? res.delayShow : 0 });
-                    if (moosnow.platform) {
-                        if (res) {
-                            if (!isNaN(res.bannerShowCountLimit))
-                                moosnow.platform.bannerShowCountLimit = parseInt(res.bannerShowCountLimit);
-                            if (!isNaN(res.bannerLimitType))
-                                moosnow.platform.bannerLimitType = parseInt(res.bannerLimitType);
-                            if (!isNaN(res.bannerShowTimeLimit))
-                                moosnow.platform.bannerShowTimeLimit = parseInt(res.bannerShowTimeLimit);
+                    var versionRet = moosnow.platform.checkLog(res.version);
+                    if (!versionRet) {
+                        _this.cfgData = _this.defaultCfg(res, false);
+                        console.log('版本关闭----------------', _this.cfgData);
+                    }
+                    else {
+                        //总开关控制
+                        var mistouchOn = res && res.mistouchOn == 1 ? true : false;
+                        if (!mistouchOn) {
+                            console.log('总开关已关闭----------------', _this.cfgData);
                         }
+                        _this.cfgData = _this.defaultCfg(res, !mistouchOn);
                     }
                     _this._cfgQuene.forEach(function (item) {
                         item(_this.cfgData);
                     });
                     _this._cfgQuene = [];
                 }, function () {
+                    var cfg = _this.defaultCfg(null, false);
                     _this._cfgQuene.forEach(function (item) {
-                        item({
-                            checkBoxMistouch: 0,
-                            checkBoxProbabilitys: [100, 0, 0, 0, 0],
-                            mistouchNum: 0,
-                            mistouchPosNum: 0,
-                            bannerShowCountLimit: 1,
-                            exportAutoNavigate: 0
-                        });
+                        item(cfg);
                     });
                     _this._cfgQuene = [];
                     console.log('load config json fail');
@@ -3562,48 +3729,74 @@ var mx = (function () {
             this.bannerHeigth = size.height;
             this.banner.style.left = (windowWidth - size.width) / 2;
             var styleTop = windowHeight - this.bannerHeigth;
-            if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
-                styleTop = windowHeight - this.bannerHeigth;
-            }
-            else if (this.bannerPosition == BANNER_POSITION.CENTER)
-                styleTop = (windowHeight - this.bannerHeigth) / 2;
-            else if (this.bannerPosition == BANNER_POSITION.TOP) {
-                if (this.isLandscape(wxsys.windowHeight, wxsys.windowWidth))
-                    styleTop = 0;
-                else
-                    styleTop = statusBarHeight + notchHeight;
-            }
-            else
-                styleTop = this.bannerStyle.top;
+            // if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
+            //     styleTop = windowHeight - this.bannerHeigth;
+            // }
+            // else if (this.bannerPosition == BANNER_POSITION.CENTER)
+            //     styleTop = (windowHeight - this.bannerHeigth) / 2;
+            // else if (this.bannerPosition == BANNER_POSITION.TOP) {
+            //     if (this.isLandscape(wxsys.windowHeight, wxsys.windowWidth))
+            //         styleTop = 0
+            //     else
+            //         styleTop = statusBarHeight + notchHeight
+            // }
+            // else
+            //     styleTop = this.bannerStyle.top;
             this.banner.style.top = styleTop;
             console.log('_bottomCenterBanner  ', this.banner.style);
         };
-        OPPOModule.prototype._resetBanenrStyle = function (size) {
+        OPPOModule.prototype._getBannerPosition = function (horizontal, vertical) {
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.NONE; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.NONE; }
+            console.log("QQModule -> _getBannerPosition -> vertical", vertical);
+            console.log("QQModule -> _getBannerPosition -> horizontal", horizontal);
             var wxsys = this.getSystemInfoSync();
             var windowWidth = wxsys.windowWidth;
             var windowHeight = wxsys.windowHeight;
             var statusBarHeight = wxsys.statusBarHeight;
             var notchHeight = wxsys.notchHeight || 0;
-            if (!isNaN(this.bannerWidth))
+            if (!isNaN(this.bannerWidth) && this.banner)
                 this.banner.style.width = this.bannerWidth;
-            if (!isNaN(this.bannerHeight))
+            if (!isNaN(this.bannerHeight) && this.banner)
                 this.banner.style.height = this.bannerHeight;
-            var styleTop = windowHeight - this.bannerHeigth;
-            if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
-                styleTop = windowHeight - this.bannerHeigth;
-            }
-            else if (this.bannerPosition == BANNER_POSITION.CENTER)
-                styleTop = (windowHeight - this.bannerHeigth) / 2;
-            else if (this.bannerPosition == BANNER_POSITION.TOP) {
+            var top = 0;
+            var left = 0;
+            if (vertical == BANNER_VERTICAL.TOP) {
                 if (this.isLandscape(wxsys.windowHeight, wxsys.windowWidth))
-                    styleTop = 0;
+                    top = 0;
                 else
-                    styleTop = statusBarHeight + notchHeight;
+                    top = statusBarHeight + notchHeight;
             }
-            else
-                styleTop = this.bannerStyle.top;
-            this.banner.style.top = styleTop;
-            console.log('_resetBanenrStyle ', this.banner.style, 'set styleTop ', styleTop);
+            else if (vertical == BANNER_VERTICAL.CENTER) {
+                top = (windowHeight - this.bannerHeigth) / 2;
+            }
+            else if (vertical == BANNER_VERTICAL.BOTTOM) {
+                top = windowHeight - this.bannerHeigth - 16;
+            }
+            if (horizontal == BANNER_HORIZONTAL.LEFT) {
+                left = 0;
+            }
+            else if (horizontal == BANNER_HORIZONTAL.RIGHT) {
+                left = windowWidth - this.bannerWidth;
+            }
+            else if (horizontal == BANNER_HORIZONTAL.CENTER) {
+                left = (windowWidth - this.bannerWidth) / 2;
+            }
+            console.log("QQModule -> _getBannerPosition -> left", left, 'top', top);
+            // return {
+            //     left: 16,
+            //     top: 16,
+            // }
+            return {
+                left: left,
+                top: top,
+            };
+        };
+        OPPOModule.prototype._resetBanenrStyle = function (size) {
+            var style = this._getBannerPosition();
+            this.banner.style.top = style.top;
+            this.banner.style.left = style.left;
+            console.log('_resetBanenrStyle ', this.banner.style, 'set style ', style);
         };
         OPPOModule.prototype._onBannerHide = function () {
             console.log('banner 已隐藏 ');
@@ -3626,16 +3819,20 @@ var mx = (function () {
          * @param position banner的位置，默认底部
          * @param style 自定义样式
          */
-        OPPOModule.prototype.showBanner = function (remoteOn, callback, position, style) {
+        OPPOModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
-            if (position === void 0) { position = BANNER_POSITION.BOTTOM; }
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.NONE; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.NONE; }
             console.log(MSG.BANNER_SHOW);
             this.bannerCb = callback;
             this.isBannerShow = true;
             if (!window[this.platformName]) {
                 return;
             }
+            this.bannerHorizontal = horizontal;
+            this.bannerVertical = vertical;
+            this.bannerStyle = style;
             if (remoteOn)
                 moosnow.http.getAllConfig(function (res) {
                     if (res.mistouchNum == 0) {
@@ -4568,49 +4765,6 @@ var mx = (function () {
             this.mBannerLoaded = false;
             _super.prototype._prepareBanner.call(this);
         };
-        TTModule.prototype._resetBanenrStyle = function (size) {
-            if (Common.isEmpty(size)) {
-                console.log('设置的banner尺寸为空,不做调整');
-                return;
-            }
-            var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            var windowHeight = wxsys.windowHeight;
-            // if (Common.getEngine() == ENGINE_TYPE.COCOS) {
-            //     windowWidth = cc.Canvas.instance.node.width;
-            //     windowHeight = cc.Canvas.instance.node.height;
-            // }
-            // if (Common.getEngine() == ENGINE_TYPE.LAYA) {
-            //     windowWidth = Laya.stage.width;
-            //     windowHeight = Laya.stage.height;
-            // }
-            var top = 0;
-            if (this.isLandscape(windowHeight, windowWidth)) {
-                if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
-                    top = windowHeight - this.bannerHeigth;
-                }
-                else if (this.bannerPosition == BANNER_POSITION.CENTER)
-                    top = (windowHeight - this.bannerHeigth) / 2;
-                else if (this.bannerPosition == BANNER_POSITION.TOP)
-                    top = 0;
-            }
-            else {
-                if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
-                    top = windowHeight - this.bannerHeigth;
-                }
-                else if (this.bannerPosition == BANNER_POSITION.CENTER)
-                    top = (windowHeight - this.bannerHeigth) / 2;
-                else if (this.bannerPosition == BANNER_POSITION.TOP)
-                    top = 0;
-            }
-            if (this.bannerStyle) {
-                this.banner.style = this.bannerStyle;
-            }
-            else {
-                this.banner.style.top = top;
-                console.log(MSG.BANNER_RESIZE, this.banner.style, this.banner);
-            }
-        };
         /**
          * 显示平台的banner广告
          * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
@@ -4618,10 +4772,11 @@ var mx = (function () {
          * @param position banner的位置，默认底部
          * @param style 自定义样式
          */
-        TTModule.prototype.showBanner = function (remoteOn, callback, position, style) {
+        TTModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
-            if (position === void 0) { position = BANNER_POSITION.BOTTOM; }
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.NONE; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.NONE; }
             // if (this.isBannerShow)
             //     return;
             console.log(MSG.BANNER_SHOW);
@@ -4633,7 +4788,9 @@ var mx = (function () {
             if (!window[this.platformName]) {
                 return;
             }
-            this.bannerPosition = position;
+            this.bannerHorizontal = horizontal;
+            this.bannerVertical = vertical;
+            this.bannerStyle = style;
             this.bannerStyle = style;
             if (remoteOn)
                 moosnow.http.getAllConfig(function (res) {
@@ -4925,20 +5082,18 @@ var mx = (function () {
             var wxsys = this.getSystemInfoSync();
             var windowWidth = wxsys.screenWidth;
             var windowHeight = wxsys.screenHeight;
-            var centerPos = (windowWidth - this.bannerWidth) / 2;
-            var top = windowHeight - height / 2;
             if (Common.isEmpty(this.bannerId)) {
                 console.warn(MSG.BANNER_KEY_IS_NULL);
                 return;
             }
-            console.log('create banner by banner id ', this.bannerId);
+            var bannerStyle = this._getBannerPosition();
             var style = {
-                top: top,
-                left: centerPos,
+                top: bannerStyle.top,
+                left: bannerStyle.left,
                 width: this.bannerWidth,
                 height: height
             };
-            console.log('create banner style ', style);
+            console.log("QQModule -> _createBannerAd -> style", style);
             var banner = window[this.platformName].createBannerAd({
                 adUnitId: this.bannerId,
                 style: style
@@ -4952,17 +5107,19 @@ var mx = (function () {
           * @param position banner的位置，默认底部
           * @param style 自定义样式
           */
-        QQModule.prototype.showBanner = function (remoteOn, callback, position, style) {
+        QQModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
-            if (position === void 0) { position = BANNER_POSITION.BOTTOM; }
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.CENTER; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.BOTTOM; }
             console.log(MSG.BANNER_SHOW);
             this.bannerCb = callback;
             this.isBannerShow = true;
             if (!window[this.platformName]) {
                 return;
             }
-            this.bannerPosition = position;
+            this.bannerHorizontal = horizontal;
+            this.bannerVertical = vertical;
             this.bannerStyle = style;
             if (remoteOn)
                 moosnow.http.getAllConfig(function (res) {
@@ -4981,6 +5138,7 @@ var mx = (function () {
         QQModule.prototype._showBanner = function () {
             var _this = this;
             if (this.banner) {
+                this._resetBanenrStyle({});
                 var t = this.banner.show();
                 if (t)
                     t.then(function () {
@@ -4993,23 +5151,6 @@ var mx = (function () {
             // 注意：如果在回调里再次调整尺寸，要确保不要触发死循环！！！  
             console.log('Resize后正式宽高:', size.width, size.height);
             // this._resetBanenrStyle(size);
-        };
-        QQModule.prototype._resetBanenrStyle = function (size) {
-            var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            var windowHeight = wxsys.windowHeight;
-            var top = 0;
-            if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
-                top = windowHeight - this.bannerHeigth;
-            }
-            else if (this.bannerPosition == BANNER_POSITION.CENTER)
-                top = (windowHeight - this.bannerHeigth) / 2;
-            else if (this.bannerPosition == BANNER_POSITION.TOP)
-                top = 0;
-            else
-                top = this.bannerStyle.top;
-            if (this.banner && this.banner.style)
-                this.banner.style.top = top;
         };
         /**
          * 盒子广告
@@ -5086,59 +5227,94 @@ var mx = (function () {
             if (Common.isFunction(this.mOnBoxCallback))
                 this.mOnBoxCallback(0);
         };
-        // public showBlock(position: POSITION = POSITION.NONE, orientation: string = "landscape" || "vertical", size: number = 5) {
-        //     if (!window[this.platformName]) return;
-        //     if (!window[this.platformName].createBlockAd) return;
-        //     if (this.block) {
-        //         this.block.destroy();
-        //     }
-        //     this.block = window[this.platformName].createBlockAd({
-        //         adUnitId: this.blockId,
-        //         orientation,
-        //         style: {
-        //             left: 0,
-        //             top: 0
-        //         }
-        //     })
-        //     this.block.onLoad(this._onBlockLoad)
-        //     this.block.onError(this._onBlockError)
-        //     this.block.onResize(this._onBlockResize)
-        // }
+        QQModule.prototype.showBlock = function (horizontal, vertical, orientation, size) {
+            if (horizontal === void 0) { horizontal = BLOCK_HORIZONTAL.CENTER; }
+            if (vertical === void 0) { vertical = BLOCK_VERTICAL.TOP; }
+            if (orientation === void 0) { orientation = 1; }
+            if (size === void 0) { size = 5; }
+            if (!window[this.platformName])
+                return;
+            if (!window[this.platformName].createBlockAd)
+                return;
+            if (this.block) {
+                this.block.destroy();
+            }
+            this.blockHorizontal = horizontal;
+            this.blockVertical = vertical;
+            var style = this._getBlockPosition();
+            console.log("QQModule -> showBlock -> style", style);
+            this.block = window[this.platformName].createBlockAd({
+                adUnitId: this.blockId,
+                orientation: orientation == 1 ? "landscape" : "vertical",
+                size: size,
+                style: {
+                    left: style.left,
+                    top: style.top,
+                }
+            });
+            console.log("QQModule -> showBlock ->  this.block", this.block);
+            this.block.onLoad(this._onBlockLoad.bind(this));
+            this.block.onError(this._onBlockError.bind(this));
+            this.block.onResize(this._onBlockResize.bind(this));
+        };
+        QQModule.prototype.hideBlock = function () {
+            if (this.block)
+                this.block.hide();
+        };
         QQModule.prototype._onBlockLoad = function (res) {
             console.log("QQModule -> _onBlockLoad -> res", res);
+            this.block.show()
+                .then(function (showResult) {
+                console.log("QQModule -> _onBlockLoad -> showResult", showResult);
+            });
         };
         QQModule.prototype._onBlockError = function (res) {
             console.log("QQModule -> _onBlockError -> res", res);
         };
-        QQModule.prototype._onBlockResize = function (size) {
+        QQModule.prototype._getBlockPosition = function () {
+            var horizontal = this.blockHorizontal;
+            var vertical = this.blockVertical;
+            console.log("QQModule -> _getBlockPosition -> vertical", vertical);
+            console.log("QQModule -> _getBlockPosition -> horizontal", horizontal);
             var wxsys = this.getSystemInfoSync();
             var windowWidth = wxsys.windowWidth;
             var windowHeight = wxsys.windowHeight;
             var top = 0;
-            // if (this.bannerPosition == BLOCK_POSITION.BOTTOM
-            //     || this.bannerPosition == BLOCK_POSITION.LEFT_BOTTOM
-            //     || this.bannerPosition == BLOCK_POSITION.RIGHT_BOTTOM) {
-            //     top = windowHeight - this.bannerHeigth;
+            var left = 0;
+            if (vertical == BLOCK_VERTICAL.TOP) {
+                top = 16;
+            }
+            else if (vertical == BLOCK_VERTICAL.CENTER) {
+                top = (windowHeight - this.blockHeigth) / 2;
+            }
+            else if (vertical == BLOCK_VERTICAL.BOTTOM) {
+                top = windowHeight - this.blockHeigth - 16;
+            }
+            if (horizontal == BLOCK_HORIZONTAL.LEFT) {
+                left = 16;
+            }
+            else if (horizontal == BLOCK_HORIZONTAL.RIGHT) {
+                left = windowWidth - this.blockWidth - 16;
+            }
+            else if (horizontal == BLOCK_HORIZONTAL.CENTER) {
+                left = (windowWidth - this.blockWidth) / 2;
+            }
+            console.log("QQModule -> _getBlockPosition -> left", left, 'top', top);
+            // return {
+            //     left: 16,
+            //     top: 16,
             // }
-            // else if (this.bannerPosition == BLOCK_POSITION.CENTER
-            //     || this.bannerPosition == BLOCK_POSITION.LEFT_CENTER
-            //     || this.bannerPosition == BLOCK_POSITION.RIGHT_CENTER)
-            //     top = (windowHeight - this.bannerHeigth) / 2;
-            // else if (this.bannerPosition == BLOCK_POSITION.TOP)
-            //     top = 0;
-            // if (this.bannerPosition == BLOCK_POSITION.LEFT_BOTTOM
-            //     || this.bannerPosition == BLOCK_POSITION.LEFT_CENTER) {
-            //     this.block.style.left = 0;
-            // }
-            // else if (this.bannerPosition == BLOCK_POSITION.RIGHT_BOTTOM) {
-            //     this.block.style.top = windowWidth - this.bannerWidth;
-            // }
-            // else {
-            //     let left = (windowWidth - this.bannerWidth) / 2;
-            //     this.block.style.left = left;
-            // }
-            // this.banner.style.top = top;
-            // console.log(MSG.BANNER_RESIZE, this.banner.style, 'set top ', top)
+            return {
+                left: left,
+                top: top,
+            };
+        };
+        QQModule.prototype._onBlockResize = function (size) {
+            var style = this._getBlockPosition();
+            console.log("QQModule -> _onBlockResize -> style", style);
+            this.block.style.top = style.top;
+            this.block.style.left = style.left;
+            console.log(MSG.BANNER_RESIZE, this.block.style, 'set top ', top);
         };
         return QQModule;
     }(PlatformModule));
@@ -5314,8 +5490,6 @@ var mx = (function () {
         function BDModule() {
             var _this = _super.call(this) || this;
             _this.platformName = "swan";
-            _this.bannerId = "";
-            _this.videoId = "";
             _this.appSid = "";
             _this.recordRes = null;
             _this.recordCb = null;
@@ -5808,6 +5982,7 @@ var mx = (function () {
             _this.interLoadedShow = false;
             _this.prevNavigate = Date.now();
             _this.mMinInterval = 10;
+            _this.mMinHideInterval = 5;
             _this.mIsClickedNative = false;
             _this._regisiterWXCallback();
             _this.initAdService();
@@ -5968,6 +6143,58 @@ var mx = (function () {
             }
             return this.systemInfo;
         };
+        VIVOModule.prototype._getBannerPosition = function () {
+            var horizontal = this.bannerHorizontal;
+            var vertical = this.bannerVertical;
+            console.log("VIVOModule -> _getBannerPosition -> vertical", vertical);
+            console.log("VIVOModule -> _getBannerPosition -> horizontal", horizontal);
+            var wxsys = this.getSystemInfoSync();
+            var windowWidth = wxsys.screenWidth;
+            var windowHeight = wxsys.screenHeight;
+            var statusBarHeight = wxsys.statusBarHeight;
+            var notchHeight = wxsys.notchHeight || 0;
+            if (!isNaN(this.bannerWidth) && this.banner)
+                this.banner.style.width = this.bannerWidth;
+            if (!isNaN(this.bannerHeight) && this.banner)
+                this.banner.style.height = this.bannerHeight;
+            var top = 0;
+            var left = 0;
+            if (vertical == BANNER_VERTICAL.TOP) {
+                // if (this.isLandscape(wxsys.windowHeight, wxsys.windowWidth))
+                //     top = 0
+                // else
+                top = statusBarHeight + notchHeight;
+            }
+            else if (vertical == BANNER_VERTICAL.CENTER) {
+                top = (windowHeight - this.bannerHeigth) / 2;
+            }
+            else if (vertical == BANNER_VERTICAL.BOTTOM) {
+                top = windowHeight - this.bannerHeigth;
+            }
+            if (horizontal == BANNER_HORIZONTAL.LEFT) {
+                left = 0;
+                console.log("VIVOModule -> _getBannerPosition -> left BANNER_HORIZONTAL.LEFT");
+            }
+            else if (horizontal == BANNER_HORIZONTAL.RIGHT) {
+                left = windowWidth - this.bannerWidth;
+                console.log("VIVOModule -> _getBannerPosition -> left BANNER_HORIZONTAL.RIGHT");
+            }
+            else if (horizontal == BANNER_HORIZONTAL.CENTER) {
+                left = (windowWidth - this.bannerWidth) / 2;
+                console.log("VIVOModule -> _getBannerPosition -> left BANNER_HORIZONTAL.CENTER");
+            }
+            else
+                console.log("VIVOModule -> _getBannerPosition -> left ERROR ");
+            console.log("VIVOModule -> _getBannerPosition -> top,left", top, left);
+            // return {
+            //     left: 16,
+            //     top: 16,
+            // }
+            return {
+                left: left,
+                top: top,
+            };
+        };
         VIVOModule.prototype._createBannerAd = function () {
             if (!window[this.platformName])
                 return;
@@ -5976,45 +6203,24 @@ var mx = (function () {
             var nowTime = Date.now();
             if (!this.mShowTime)
                 this.mShowTime = nowTime;
-            if (!!!this.mShowTime || ((!!this.mShowTime) && nowTime - this.mShowTime <= this.mMinInterval * 1000)) {
+            else if (this.mShowTime && (nowTime - this.mShowTime <= this.mMinInterval * 1000)) {
                 console.log("banner\u521B\u5EFA\u592A\u9891\u7E41\u4E86 " + this.mMinInterval + "\u79D2\u5185\u53EA\u80FD\u663E\u793A\u4E00\u6B21");
                 return;
             }
             this.mShowTime = Date.now();
-            var wxsys = this.getSystemInfoSync();
-            var screenWidth = wxsys.screenWidth;
-            var screenHeight = wxsys.screenHeight;
-            var statusBarHeight = wxsys.statusBarHeight;
-            var pixelRatio = wxsys.pixelRatio;
-            var notchHeight = this.getNotchHeight();
-            var left = (screenWidth - this.bannerWidth) / 2;
             if (Common.isEmpty(this.bannerId)) {
                 console.warn(MSG.BANNER_KEY_IS_NULL);
                 return;
             }
-            var styleTop = 0;
-            if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
-                styleTop = (screenHeight - this.bannerHeight);
-            }
-            else if (this.bannerPosition == BANNER_POSITION.CENTER)
-                styleTop = (screenHeight - this.bannerHeight) / 2;
-            else if (this.bannerPosition == BANNER_POSITION.TOP) {
-                if (this.isLandscape(wxsys.screenHeight, wxsys.screenWidth))
-                    styleTop = 0;
-                else
-                    styleTop = statusBarHeight + notchHeight;
-            }
-            else
-                styleTop = this.bannerStyle.top;
-            var style = {
-                top: styleTop,
-                left: left,
-                width: this.bannerWidth,
-                height: this.bannerHeight
-            };
+            var style = this._getBannerPosition();
             var banner = window[this.platformName].createBannerAd({
                 posId: this.bannerId,
-                style: style
+                style: {
+                    left: style.left,
+                    top: style.top,
+                    width: this.bannerWidth,
+                    height: this.bannerHeight
+                }
             });
             return banner;
         };
@@ -6042,15 +6248,17 @@ var mx = (function () {
           * @param position banner的位置，默认底部
           * @param style 自定义样式
           */
-        VIVOModule.prototype.showBanner = function (remoteOn, callback, position, style) {
+        VIVOModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
-            if (position === void 0) { position = BANNER_POSITION.BOTTOM; }
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.CENTER; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.BOTTOM; }
             this.bannerCb = callback;
             this.isBannerShow = true;
             if (!window[this.platformName])
                 return;
-            this.bannerPosition = position;
+            this.bannerHorizontal = horizontal;
+            this.bannerVertical = vertical;
             this.bannerStyle = style;
             if (remoteOn)
                 moosnow.http.getAllConfig(function (res) {
@@ -6107,6 +6315,13 @@ var mx = (function () {
         VIVOModule.prototype.hideBanner = function () {
             console.log(MSG.HIDE_BANNER);
             if (!window[this.platformName]) {
+                return;
+            }
+            var nowTime = Date.now();
+            if (!this.mShowTime)
+                this.mShowTime = nowTime;
+            if (this.mHideTime && nowTime - this.mHideTime <= this.mMinHideInterval * 1000) {
+                console.log("banner\u9690\u85CF\u592A\u9891\u7E41\u4E86 " + this.mMinHideInterval + "\u79D2\u5185\u53EA\u9690\u85CF\u4E00\u6B21");
                 return;
             }
             if (this.banner) {
@@ -6798,11 +7013,11 @@ var mx = (function () {
             var _this = _super.call(this) || this;
             _this.platformName = "uc";
             _this.mGravity = (_a = {},
-                _a[BANNER_POSITION.TOP] = 1,
-                _a[BANNER_POSITION.CENTER] = 4,
-                _a[BANNER_POSITION.BOTTOM] = 7,
-                _a[BANNER_POSITION.LEFT_BOTTOM] = 6,
-                _a[BANNER_POSITION.RIGHT_BOTTOM] = 8,
+                _a[BANNER_HORIZONTAL.CENTER + "_" + BANNER_VERTICAL.TOP] = 1,
+                _a[BANNER_HORIZONTAL.CENTER + "_" + BANNER_VERTICAL.CENTER] = 4,
+                _a[BANNER_HORIZONTAL.CENTER + "_" + BANNER_VERTICAL.BOTTOM] = 7,
+                _a[BANNER_HORIZONTAL.LEFT + "_" + BANNER_VERTICAL.BOTTOM] = 6,
+                _a[BANNER_HORIZONTAL.RIGHT + "_" + BANNER_VERTICAL.BOTTOM] = 8,
                 _a);
             if (!window[_this.platformName])
                 return _this;
@@ -6867,7 +7082,7 @@ var mx = (function () {
             this.bannerShowTime = Date.now();
             var banner = window[this.platformName].createBannerAd({
                 style: {
-                    gravity: this.mGravity[BANNER_POSITION.BOTTOM],
+                    gravity: this.mGravity[this.bannerHorizontal + "_" + this.bannerVertical],
                     width: this.bannerWidth
                 }
             });
@@ -6880,17 +7095,19 @@ var mx = (function () {
          * @param position banner的位置，默认底部
          * @param style 自定义样式
          */
-        UCModule.prototype.showBanner = function (remoteOn, callback, position, style) {
+        UCModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
-            if (position === void 0) { position = BANNER_POSITION.BOTTOM; }
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.CENTER; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.BOTTOM; }
             console.log(MSG.BANNER_SHOW);
             this.bannerCb = callback;
             this.isBannerShow = true;
             if (!window[this.platformName]) {
                 return;
             }
-            this.bannerPosition = position;
+            this.bannerHorizontal = horizontal;
+            this.bannerVertical = vertical;
             this.bannerStyle = style;
             if (this.mTimeoutId) {
                 clearTimeout(this.mTimeoutId);
@@ -6971,7 +7188,10 @@ var mx = (function () {
             this.VIDEO_STATUS = VIDEO_STATUS;
             this.VIDEO_MSG = VIDEO_MSG;
             this.SHARE_MSG = SHARE_MSG;
-            this.BANNER_POSITION = BANNER_POSITION;
+            this.BANNER_HORIZONTAL = BANNER_HORIZONTAL;
+            this.BANNER_VERTICAL = BANNER_VERTICAL;
+            this.BLOCK_HORIZONTAL = BLOCK_HORIZONTAL;
+            this.BLOCK_VERTICAL = BLOCK_VERTICAL;
             this.SHARE_CHANNEL = SHARE_CHANNEL;
             this.APP_PLATFORM = PlatformType;
             this.PLATFORM_EVENT = EventType;
@@ -6997,6 +7217,9 @@ var mx = (function () {
              */
         moosnow.prototype.getAppPlatform = function () {
             return Common.platform;
+        };
+        moosnow.prototype.appConfig = function () {
+            return Common.config;
         };
         moosnow.prototype.initHttp = function () {
             if (Common.platform == PlatformType.WX)
