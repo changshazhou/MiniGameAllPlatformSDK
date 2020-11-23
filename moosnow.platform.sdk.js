@@ -1152,7 +1152,7 @@ var mx = (function () {
         PlatformModule.prototype.login = function (success, fail) {
             if (Common.isFunction(success)) {
                 var token = moosnow.data.getToken();
-                if (!token) {
+                if (token == "") {
                     token = Common.generateUUID();
                     token = token.replace(/-/g, '');
                     moosnow.data.setToken(token);
@@ -2876,11 +2876,13 @@ var mx = (function () {
             _this.versionNumber = "";
             _this.version = "2.1.0";
             _this.baseUrl = "https://api.liteplay.com.cn/";
+            _this.instanceTime = 0;
             _this.mLaunchOptions = {};
             _this.cfgData = null;
             _this.areaData = null;
             _this._cfgQuene = [];
             _this._localQuene = [];
+            _this.instanceTime = Date.now();
             var versionUrl = ROOT_CONFIG.HTTP_ROOT + "/SDK/version.json?t=" + Date.now();
             if (Common.platform == PlatformType.PC) {
                 _this.request(versionUrl, {}, 'GET', function (res) {
@@ -2983,28 +2985,32 @@ var mx = (function () {
         HttpModule.prototype.isDisableArea = function (callback) {
         };
         /**
-           * Loading加载完成
-           */
+         * Loading加载完成
+         */
         HttpModule.prototype.finishLoading = function () {
-            this.postData('api/channel/validUser.html');
+            this.point("加载完成", {
+                time: Date.now() - this.instanceTime
+            });
         };
         /**
           * 点击了banner
           */
         HttpModule.prototype.clickBanner = function () {
-            this.postData('api/channel/clickBanner.html');
+            // this.point("点击了banner", {
+            // });
         };
         /**
          * 看完了视频
          */
         HttpModule.prototype.clickVideo = function () {
-            this.postData('api/channel/clickVideo.html');
+            // this.point("点击视频", {
+            // });
         };
         /**
          * 导出跳转
          */
         HttpModule.prototype.exportUser = function () {
-            this.postData('api/channel/exportUser.html');
+            // this.postData('api/channel/exportUser.html')
         };
         /**
          * 跳转记录
@@ -3066,7 +3072,8 @@ var mx = (function () {
                     window['wx'].aldSendEvent(name, data);
             }
             else if (Common.platform == PlatformType.BYTEDANCE) {
-                window["tt"].reportAnalytics(name, data);
+                if (window['tt'] && window["tt"].reportAnalytics)
+                    window["tt"].reportAnalytics(name, data);
             }
         };
         /**
@@ -3086,7 +3093,7 @@ var mx = (function () {
                     console.warn(MSG.ALD_FILE_NO_IMPORT);
             }
             else if (Common.platform == PlatformType.BYTEDANCE) {
-                window["tt"].reportAnalytics(name, e);
+                this.point("开始游戏", e);
             }
             else
                 console.log("startGame -> e", e);
@@ -3115,7 +3122,7 @@ var mx = (function () {
                     console.warn(MSG.ALD_FILE_NO_IMPORT);
             }
             else if (Common.platform == PlatformType.BYTEDANCE) {
-                window["tt"].reportAnalytics(desc, e);
+                this.point(desc, e);
             }
             else
                 console.log("startGame -> e", e);
@@ -3136,7 +3143,7 @@ var mx = (function () {
                     console.warn(MSG.ALD_FILE_NO_IMPORT);
             }
             else if (Common.platform == PlatformType.BYTEDANCE) {
-                window["tt"].reportAnalytics(name, e);
+                this.point(name, e);
             }
             else
                 console.log("startGame -> e", e);
@@ -3218,12 +3225,13 @@ var mx = (function () {
                 if (res.whitelist) {
                     var token = moosnow.data.getToken();
                     var inWhite = false;
-                    for (var i = 0; i < res.whitelist.length; i++) {
-                        if (token == res.whitelist[i]) {
-                            inWhite = true;
-                            break;
+                    if (token != "")
+                        for (var i = 0; i < res.whitelist.length; i++) {
+                            if (token == res.whitelist[i]) {
+                                inWhite = true;
+                                break;
+                            }
                         }
-                    }
                     if (inWhite) {
                         console.warn("白名单前 -> cfg", cfg);
                         cfg = __assign(__assign({ inWhite: inWhite }, cfg), this.getCfg(true));
@@ -7040,31 +7048,6 @@ var mx = (function () {
             return _this;
         }
         UCModule.prototype._prepareBanner = function () {
-            if (!window[this.platformName].createBannerAd)
-                return;
-            var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            //横屏模式
-            if (wxsys.windowHeight < wxsys.windowWidth) {
-                if (windowWidth < this.bannerWidth) {
-                    this.bannerWidth = windowWidth;
-                }
-            }
-            else {
-                //竖屏
-                this.bannerWidth = windowWidth;
-            }
-            if (this.banner) {
-                this.banner.offError(this._onBannerError);
-                this.banner.offLoad(this._onBannerLoad);
-                this.banner.destroy();
-                this.banner = null;
-            }
-            this.banner = this._createBannerAd();
-            if (this.banner) {
-                this.banner.onError(this._onBannerError.bind(this));
-                this.banner.onLoad(this._onBannerLoad.bind(this));
-            }
         };
         UCModule.prototype._createBannerAd = function () {
             if (!window[this.platformName])
@@ -7076,9 +7059,12 @@ var mx = (function () {
             var windowHeight = wxsys.windowHeight;
             var left = (windowWidth - this.bannerWidth) / 2;
             this.bannerShowTime = Date.now();
+            var gravity = this.mGravity[this.bannerHorizontal + "_" + this.bannerVertical];
+            if (isNaN(gravity))
+                gravity = 7;
             var banner = window[this.platformName].createBannerAd({
                 style: {
-                    gravity: this.mGravity[this.bannerHorizontal + "_" + this.bannerVertical],
+                    gravity: gravity,
                     width: this.bannerWidth
                 }
             });
@@ -7117,15 +7103,48 @@ var mx = (function () {
                     }
                     else {
                         console.log('后台开启了banner，执行显示');
-                        if (_this.banner) {
-                            _this.banner.show();
-                        }
+                        _this._showBanner();
                     }
                 });
             else {
-                if (this.banner) {
-                    this.banner.show();
+                this._showBanner();
+            }
+        };
+        UCModule.prototype._showBanner = function () {
+            if (!window[this.platformName].createBannerAd)
+                return;
+            var wxsys = this.getSystemInfoSync();
+            var windowWidth = wxsys.windowWidth;
+            //横屏模式
+            if (wxsys.windowHeight < wxsys.windowWidth) {
+                if (windowWidth < this.bannerWidth) {
+                    this.bannerWidth = windowWidth;
                 }
+            }
+            else {
+                //竖屏
+                this.bannerWidth = windowWidth;
+            }
+            if (this.banner) {
+                this.banner.hide();
+                this.banner.destroy();
+                this.banner = null;
+            }
+            this.banner = this._createBannerAd();
+            if (this.banner) {
+                this.banner.onError(this._onBannerError.bind(this));
+                this.banner.onLoad(this._onBannerLoad.bind(this));
+                this.banner.show();
+            }
+        };
+        /**
+        * 隐藏banner
+        */
+        UCModule.prototype.hideBanner = function () {
+            if (this.banner) {
+                this.banner.hide();
+                this.banner.destroy();
+                this.banner = null;
             }
         };
         UCModule.prototype.createRewardAD = function (show) {
@@ -7209,8 +7228,8 @@ var mx = (function () {
             this.mAudio = new AudioModule();
         }
         /**
-             * 获取当前的游戏平台
-             */
+        * 获取当前的游戏平台
+        */
         moosnow.prototype.getAppPlatform = function () {
             return Common.platform;
         };
