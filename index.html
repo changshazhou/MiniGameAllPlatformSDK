@@ -5,44 +5,54 @@
 </head>
 <script src="./moosnow.conf.js"></script>
 <script src="./moosnow.platform.sdk.js"></script>
+<script src="./moosnow.platform.ui.js"></script>
 
 <script>
-    moosnow.platform.login(() => {
-        moosnow.http.getAllConfig((res) => {
-            console.log(' moosnow.getAllConfig', res)
-            moosnow.ad.getAd((res) => {
-                console.log(' moosnow.getAd', res)
-            })
-            moosnow.platform.checkVersion("1_1_4", (showAd) => {
-                console.log(' moosnow.checkVersion', showAd)
-            })
-        })
-
-        moosnow.http.getMistouchPosNum(res => {
-            console.log(' moosnow.getMistouchPosNum', res)
-        })
-        moosnow.http.getMisTouchNum(res => {
-            console.log(' moosnow.getMisTouchNum', res)
-        })
+    moosnow.platform.login("", res => {
+        console.log("login res", res)
+    })
+    moosnow.platform.checkVersion("", res => {
+        console.log('checkVersion res', res)
     })
 
-    moosnow.http.point("aaa", {})
-
-    moosnow.platform.showBanner();
-
-    moosnow.platform.hideBanner();
-
-    moosnow.platform.startRecord();
-
-
-    moosnow.platform.showVideo(res => {
-        console.log(`video `, res)
+    moosnow.http.getAllConfig(res => {
+        console.log('res', res)
+    })
+    moosnow.http.getMistouchPosNum(res => {
+        console.log('getMistouchPosNum res', res)
+    })
+    moosnow.http.getMisTouchNum(res => {
+        console.log('getMisTouchNum res ', res)
     })
 
-    
+    moosnow.ad.getAd(res => {
+        console.log('getAd res ', res)
+    })
 
-
+    //
+    moosnow.form.initCheckboxState(true, (isChecked) => {
+        console.log('moosnow.form.initCheckboxState', isChecked)
+    })
+    setInterval(() => {
+        moosnow.form.checkboxToggle();
+    }, 1000)
 
 </script>
+<style>
+    .center_text {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+
+<body>
+    <div class="center">
+        　　<span class="center_text">
+            <a href="http://www.beian.miit.gov.cn" target="_blank" rel="nofollow" class="slide slide-ct"
+                hotrep="hp.footer.bottom.miitbeian">湘ICP备19005273号-1</a>
+            　　</span>
+    </div>
+</body>
 
 </html>
