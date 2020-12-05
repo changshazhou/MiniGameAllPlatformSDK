@@ -291,6 +291,10 @@ var mx = (function () {
         * VIVO
         */
         APP_PLATFORM[APP_PLATFORM["UC"] = 8] = "UC";
+        /**
+        * VIVO
+        */
+        APP_PLATFORM[APP_PLATFORM["HW"] = 9] = "HW";
     })(APP_PLATFORM || (APP_PLATFORM = {}));
 
     var ENGINE_TYPE = {
@@ -452,6 +456,8 @@ var mx = (function () {
                 }
                 else if (window['uc'])
                     this.mPlatform = APP_PLATFORM.UC;
+                else if (window['hbs'])
+                    this.mPlatform = APP_PLATFORM.HW;
                 else if (window['wx'])
                     this.mPlatform = APP_PLATFORM.WX;
                 else {
@@ -473,6 +479,8 @@ var mx = (function () {
                             this.mPlatform = APP_PLATFORM.VIVO;
                         else if (winCfg.debug == "uc")
                             this.mPlatform = APP_PLATFORM.UC;
+                        else if (winCfg.debug == "hw")
+                            this.mPlatform = APP_PLATFORM.HW;
                         else
                             this.mPlatform = APP_PLATFORM.PC;
                     }
@@ -909,6 +917,7 @@ var mx = (function () {
             _this.shareInfoArr = [];
             _this.versionRet = null;
             _this.prevNavigate = Date.now();
+            _this.preloadBannerId = "";
             _this.isLoaded = false;
             _this.initAppConfig();
             // this._regisiterWXCallback();
@@ -926,7 +935,7 @@ var mx = (function () {
             var id = Common.config["bannerId"];
             if (id instanceof Array) {
                 if (random || idx < 0) {
-                    return MathUtils.randomNumBoth(0, id.length - 1);
+                    return id[MathUtils.randomNumBoth(0, id.length - 1)];
                 }
                 else {
                     if (id.length - 1 < idx) {
@@ -1819,7 +1828,7 @@ var mx = (function () {
                 return;
             }
             if (this.banner[bannerId])
-                return this.banner[bannerId];
+                return bannerId;
             this.bannerShowTime = Date.now();
             var style = this._getBannerPosition();
             console.log("🚀 ~ file: PlatformModule.ts ~ line 995 ~ PlatformModule ~ _createBannerAd ~ style", style);
@@ -1870,7 +1879,7 @@ var mx = (function () {
                 this.banner[bannerId].style.left = (windowWidth - size.width) / 2;
         };
         PlatformModule.prototype._resetBanenrStyle = function (e) {
-            console.log("🚀 ~ file: PlatformModule.ts ~ line 1045 ~ PlatformModule ~ _resetBanenrStyle ~ size", e);
+            console.log("PlatformModule ~ _resetBanenrStyle ~ size", e);
             if (this.bannerStyle) {
                 this.applyCustomStyle(e);
             }
@@ -1914,8 +1923,8 @@ var mx = (function () {
             else if (horizontal == BANNER_HORIZONTAL.CENTER) {
                 left = (windowWidth - this.bannerWidth) / 2;
             }
-            console.log("TTModule -> _getBannerPosition -> left", left, 'top', top);
             // return {
+            console.log("🚀 ~ file: PlatformModule.ts ~ line 1132 ~ PlatformModule ~ _getBannerPosition ~ left", left, top);
             //     left: 16,
             //     top: 16,
             // }
@@ -1926,10 +1935,7 @@ var mx = (function () {
         };
         PlatformModule.prototype.preloadBanner = function (idIndex) {
             if (idIndex === void 0) { idIndex = -1; }
-            return;
-            var bannerId = this.getBannerId(idIndex);
-            if (!this.banner[bannerId])
-                this._createBannerAd(idIndex);
+            this.preloadBannerId = this._createBannerAd(idIndex);
         };
         /**
           * 显示平台的banner广告
@@ -1954,8 +1960,7 @@ var mx = (function () {
             this.bannerHorizontal = horizontal;
             this.bannerVertical = vertical;
             this.bannerStyle = style;
-            if (!window[this.platformName].createBannerAd)
-                return;
+            this.hideBanner();
             this.currentBannerId = this._createBannerAd(idIndex);
             if (this.mTimeoutId) {
                 clearTimeout(this.mTimeoutId);
@@ -2057,10 +2062,20 @@ var mx = (function () {
         * 隐藏banner
         */
         PlatformModule.prototype.hideBanner = function () {
-            if (this.banner[this.currentBannerId]) {
-                this.banner[this.currentBannerId].hide();
-                this.banner[this.currentBannerId].destroy();
-                this.banner[this.currentBannerId] = null;
+            console.log(" hideBanner ~ this.banner", this.banner);
+            for (var k in this.banner) {
+                if (k != this.preloadBannerId) {
+                    if (this.banner[k]) {
+                        this.banner[k].hide();
+                        this.banner[k].destroy();
+                        this.banner[k] = null;
+                    }
+                }
+                else {
+                    if (this.banner[k]) {
+                        this.banner[k].hide();
+                    }
+                }
             }
         };
         //------------广告video------------
@@ -3515,8 +3530,8 @@ var mx = (function () {
             var _this = _super.call(this) || this;
             _this.platformName = "qg";
             _this.appSid = "";
-            _this.bannerWidth = 760;
             _this.bannerHeight = 96;
+            _this.mBannerWidth = 760;
             _this.interLoadedShow = false;
             _this.prevNavigate = Date.now();
             _this.mIsClickedNative = false;
@@ -3524,6 +3539,32 @@ var mx = (function () {
             _this.initAdService();
             return _this;
         }
+        Object.defineProperty(OPPOModule.prototype, "bannerWidth", {
+            get: function () {
+                var wxsys = this.getSystemInfoSync();
+                var windowWidth = wxsys.windowWidth;
+                //横屏模式
+                if (this.isLandscape(wxsys.screenHeight, wxsys.screenWidth)) {
+                    if (windowWidth < 760) {
+                        this.mBannerWidth = windowWidth;
+                    }
+                    else {
+                        this.mBannerWidth = 760;
+                    }
+                }
+                else {
+                    //竖屏
+                    this.mBannerWidth = windowWidth;
+                }
+                return this.mBannerWidth;
+            },
+            set: function (value) {
+                this.mBannerWidth = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ;
         OPPOModule.prototype.initAdService = function () {
             if (!window[this.platformName])
                 return;
@@ -3534,9 +3575,9 @@ var mx = (function () {
                     appId: this.moosnowConfig.moosnowAppId,
                     success: function (res) {
                         console.log("\u521D\u59CB\u5316\u5E7F\u544A");
-                        self.initBanner();
-                        self.initInter();
-                        self._prepareNative();
+                        // self.initBanner();
+                        // self.initInter();
+                        // self._prepareNative();
                     },
                     fail: function (res) {
                         console.warn("\u521D\u59CB\u5316\u5E7F\u544A\u9519\u8BEF " + res.code + "  " + res.msg);
@@ -3548,9 +3589,9 @@ var mx = (function () {
             }
             else {
                 console.log("\u521D\u59CB\u5316\u5E7F\u544A");
-                self.initBanner();
-                self.initInter();
-                self._prepareNative();
+                // self.initBanner();
+                // self.initInter();
+                // self._prepareNative();
             }
             moosnow.event.addListener(PLATFORM_EVENT.ON_PLATFORM_SHOW, this, this.onAppShow);
         };
@@ -3705,24 +3746,7 @@ var mx = (function () {
         OPPOModule.prototype._prepareBanner = function () {
             if (!window[this.platformName].createBannerAd)
                 return;
-            var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            //横屏模式 
-            if (this.isLandscape(wxsys.windowHeight, wxsys.windowWidth)) {
-                if (windowWidth < this.bannerWidth) {
-                    this.bannerWidth = windowWidth;
-                }
-            }
-            else {
-                //竖屏
-                this.bannerWidth = windowWidth;
-            }
-            if (this.banner) {
-                this.banner.offResize(this._onBannerResize);
-                this.banner.offError(this._onBannerError);
-                this.banner.offLoad(this._onBannerLoad);
-                this.banner.offHide();
-            }
+            this.hideBanner();
             this.banner = this._createBannerAd();
             this.banner.onResize(this._onBannerResize.bind(this));
             this.banner.onError(this._onBannerError.bind(this));
@@ -3734,35 +3758,29 @@ var mx = (function () {
                 return;
             if (!window[this.platformName].createBannerAd)
                 return;
-            var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            var windowHeight = wxsys.windowHeight;
-            var left = (windowWidth - this.bannerWidth) / 2;
-            if (Common.isEmpty(this.getBannerId())) {
-                console.warn(MSG.BANNER_KEY_IS_NULL);
-                return;
-            }
-            var styleTop = windowHeight - this.bannerHeigth;
+            var style = this._getBannerPosition();
+            console.log(" OPPOModule ~ _createBannerAd ~ style", style);
             var banner = window[this.platformName].createBannerAd({
                 adUnitId: this.getBannerId(),
                 style: {
-                    top: styleTop,
-                    left: left,
-                    width: this.bannerWidth
+                    left: style.left,
+                    top: style.top,
+                    width: this.bannerWidth,
+                    height: this.bannerHeight
                 }
             });
             return banner;
         };
         OPPOModule.prototype._onBannerResize = function (size) {
-            var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            var windowHeight = wxsys.windowHeight;
-            var statusBarHeight = wxsys.statusBarHeight;
-            var notchHeight = wxsys.notchHeight || 0;
-            this.bannerWidth = size.width;
-            this.bannerHeigth = size.height;
-            this.banner.style.left = (windowWidth - size.width) / 2;
-            var styleTop = windowHeight - this.bannerHeigth;
+            // let wxsys = this.getSystemInfoSync();
+            // let windowWidth = wxsys.windowWidth;
+            // let windowHeight = wxsys.windowHeight;
+            // let statusBarHeight = wxsys.statusBarHeight;
+            // let notchHeight = wxsys.notchHeight || 0
+            // this.bannerWidth = size.width;
+            // this.bannerHeigth = size.height;
+            // this.banner.style.left = (windowWidth - size.width) / 2;
+            // let styleTop = windowHeight - this.bannerHeigth;
             // if (this.bannerPosition == BANNER_POSITION.BOTTOM) {
             //     styleTop = windowHeight - this.bannerHeigth;
             // }
@@ -3776,27 +3794,27 @@ var mx = (function () {
             // }
             // else
             //     styleTop = this.bannerStyle.top;
-            this.banner.style.top = styleTop;
+            // this.banner.style.top = styleTop;
             console.log('_bottomCenterBanner  ', this.banner.style);
         };
-        OPPOModule.prototype._getBannerPosition = function (horizontal, vertical) {
-            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.NONE; }
-            if (vertical === void 0) { vertical = BANNER_VERTICAL.NONE; }
-            console.log("QQModule -> _getBannerPosition -> vertical", vertical);
-            console.log("QQModule -> _getBannerPosition -> horizontal", horizontal);
+        OPPOModule.prototype._getBannerPosition = function () {
             var wxsys = this.getSystemInfoSync();
             var windowWidth = wxsys.windowWidth;
             var windowHeight = wxsys.windowHeight;
             var statusBarHeight = wxsys.statusBarHeight;
             var notchHeight = wxsys.notchHeight || 0;
-            if (!isNaN(this.bannerWidth) && this.banner)
-                this.banner.style.width = this.bannerWidth;
-            if (!isNaN(this.bannerHeight) && this.banner)
-                this.banner.style.height = this.bannerHeight;
+            if (this.banner && this.banner.style) {
+                if (!isNaN(this.bannerWidth))
+                    this.banner.style.width = this.bannerWidth;
+                if (!isNaN(this.bannerHeight))
+                    this.banner.style.height = this.bannerHeight;
+            }
+            var horizontal = this.bannerHorizontal;
+            var vertical = this.bannerVertical;
             var top = 0;
             var left = 0;
             if (vertical == BANNER_VERTICAL.TOP) {
-                if (this.isLandscape(wxsys.windowHeight, wxsys.windowWidth))
+                if (this.isLandscape(wxsys.screenHeight, wxsys.screenWidth))
                     top = 0;
                 else
                     top = statusBarHeight + notchHeight;
@@ -3816,7 +3834,7 @@ var mx = (function () {
             else if (horizontal == BANNER_HORIZONTAL.CENTER) {
                 left = (windowWidth - this.bannerWidth) / 2;
             }
-            console.log("QQModule -> _getBannerPosition -> left", left, 'top', top);
+            console.log("OPPOModule -> _getBannerPosition -> left", left, 'top', top);
             // return {
             //     left: 16,
             //     top: 16,
@@ -3828,23 +3846,16 @@ var mx = (function () {
         };
         OPPOModule.prototype._resetBanenrStyle = function (size) {
             var style = this._getBannerPosition();
-            this.banner.style.top = style.top;
-            this.banner.style.left = style.left;
+            this.banner.style = {
+                top: style.top,
+                left: style.left,
+                width: size.width,
+                height: size.height
+            };
             console.log('_resetBanenrStyle ', this.banner.style, 'set style ', style);
         };
         OPPOModule.prototype._onBannerHide = function () {
             console.log('banner 已隐藏 ');
-        };
-        OPPOModule.prototype.destroyBanner = function () {
-            if (this.banner) {
-                this.banner.hide();
-                this.banner.offResize(this._onBannerResize);
-                this.banner.offError(this._onBannerError);
-                this.banner.offLoad(this._onBannerLoad);
-                this.banner.offHide();
-                this.banner.destroy();
-                this.banner = null;
-            }
         };
         /**
          * 显示平台的banner广告
@@ -3856,12 +3867,11 @@ var mx = (function () {
         OPPOModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, idIndex, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
-            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.NONE; }
-            if (vertical === void 0) { vertical = BANNER_VERTICAL.NONE; }
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.CENTER; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.BOTTOM; }
             if (idIndex === void 0) { idIndex = 0; }
             console.log(MSG.BANNER_SHOW);
             this.bannerCb = callback;
-            this.isBannerShow = true;
             if (!window[this.platformName]) {
                 return;
             }
@@ -3884,52 +3894,39 @@ var mx = (function () {
         };
         OPPOModule.prototype._showBanner = function () {
             var _this = this;
+            this._prepareBanner();
             if (this.banner) {
                 this._resetBanenrStyle({
                     width: this.banner.style.width,
                     height: this.banner.style.height
                 });
-                this.banner.show();
-                setTimeout(function () {
-                    _this._resetBanenrStyle({
-                        width: _this.banner.style.width,
-                        height: _this.banner.style.height
+                var t = this.banner.show();
+                if (t) {
+                    t.then(function () {
+                        _this.scheduleOnce(function () {
+                            _this._resetBanenrStyle({
+                                width: _this.banner.style.width,
+                                height: _this.banner.style.height
+                            });
+                        }, 0.5);
                     });
-                }, 500);
-            }
-            else {
-                this.initBanner();
+                }
             }
         };
         OPPOModule.prototype.hideBanner = function () {
             console.log(MSG.HIDE_BANNER);
-            if (!this.isBannerShow)
-                return;
             if (!window[this.platformName]) {
                 return;
             }
-            this.bannerShowCount++;
-            if (this.banner) {
-                if (this.bannerShowCount >= this.bannerShowCountLimit) {
-                    console.log('banner destroy');
-                    this.banner.hide();
-                    this.banner.offResize(this._onBannerResize);
-                    this.banner.offError(this._onBannerError);
-                    this.banner.offLoad(this._onBannerLoad);
-                    this.banner.offHide();
-                    this.banner.destroy();
-                    this.banner = null;
-                    console.log('重新创建banner');
-                    this._prepareBanner();
-                }
-                else {
-                    this.banner.hide();
-                }
+            if (this.banner && this.banner.hide) {
+                this.banner.hide();
+                this.banner.offResize(this._onBannerResize);
+                this.banner.offError(this._onBannerError);
+                this.banner.offLoad(this._onBannerLoad);
+                this.banner.offHide();
+                this.banner.destroy();
+                this.banner = null;
             }
-            else {
-                this._prepareBanner();
-            }
-            this.isBannerShow = false;
         };
         OPPOModule.prototype.createRewardAD = function (show) {
             if (moosnow.platform.videoLoading) {
@@ -5149,7 +5146,34 @@ var mx = (function () {
             _this.initBanner();
             return _this;
         }
-        QQModule.prototype._createBannerAd = function (adIndex) {
+        Object.defineProperty(QQModule.prototype, "bannerWidth", {
+            get: function () {
+                var wxsys = this.getSystemInfoSync();
+                var windowWidth = wxsys.windowWidth;
+                //横屏模式
+                if (this.isLandscape(wxsys.screenHeight, wxsys.screenWidth)) {
+                    if (windowWidth < 320) {
+                        this.mBannerWidth = windowWidth;
+                    }
+                    else {
+                        this.mBannerWidth = 320;
+                    }
+                }
+                else {
+                    //竖屏
+                    this.mBannerWidth = windowWidth;
+                }
+                return this.mBannerWidth;
+            },
+            set: function (value) {
+                this.mBannerWidth = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ;
+        QQModule.prototype._createBannerAd = function (adIndex, loadShow) {
+            if (loadShow === void 0) { loadShow = true; }
             if (!window[this.platformName])
                 return;
             if (!window[this.platformName].createBannerAd)
@@ -5159,25 +5183,24 @@ var mx = (function () {
                 console.warn(MSG.BANNER_KEY_IS_NULL);
                 return;
             }
-            if (this.banner[bannerId])
-                return bannerId;
+            var height = this.bannerHeigth = Math.round(320 / 300 * 72.8071);
             var bannerStyle = this._getBannerPosition();
             var style = {
                 top: bannerStyle.top,
                 left: bannerStyle.left,
-                width: this.bannerWidth,
-                height: this.bannerHeigth
+                width: 320,
+                height: height
             };
-            console.log("QQModule -> _createBannerAd -> style", style);
+            this.hideBanner();
+            console.log(" QQModule ~ _createBannerAd ~ style", style, bannerId);
             this.banner[bannerId] = window[this.platformName].createBannerAd({
                 adUnitId: bannerId,
                 style: style
             });
             if (this.banner[bannerId]) {
-                this.banner[bannerId].isLoaded = false;
                 this.banner[bannerId].onResize(this._onBannerResize);
                 this.banner[bannerId].onError(this._onBannerError);
-                this.banner[bannerId].onLoad(moosnow.platform._onBannerLoad.bind(this, bannerId));
+                this.banner[bannerId].onLoad(this._onBannerLoad.bind(this));
             }
             return bannerId;
         };
@@ -5193,7 +5216,7 @@ var mx = (function () {
             if (remoteOn === void 0) { remoteOn = true; }
             if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.CENTER; }
             if (vertical === void 0) { vertical = BANNER_VERTICAL.BOTTOM; }
-            if (idIndex === void 0) { idIndex = 0; }
+            if (idIndex === void 0) { idIndex = -1; }
             console.log(MSG.BANNER_SHOW);
             this.bannerCb = callback;
             this.isBannerShow = true;
@@ -5203,7 +5226,7 @@ var mx = (function () {
             this.bannerHorizontal = horizontal;
             this.bannerVertical = vertical;
             this.bannerStyle = style;
-            this.currentBannerId = this._createBannerAd(idIndex);
+            this.hideBanner();
             if (remoteOn)
                 moosnow.http.getAllConfig(function (res) {
                     if (res.mistouchNum == 0) {
@@ -5212,45 +5235,36 @@ var mx = (function () {
                     }
                     else {
                         console.log('后台开启了banner，执行显示');
-                        _this._showBanner(idIndex);
+                        _this.currentBannerId = _this._createBannerAd(idIndex);
+                        _this._showBanner();
                     }
                 });
-            else
-                this._showBanner(idIndex);
+            else {
+                this.currentBannerId = this._createBannerAd(idIndex);
+                this._showBanner();
+            }
         };
-        QQModule.prototype._showBanner = function (idIndex) {
+        QQModule.prototype._showBanner = function () {
             var _this = this;
-            var bannerId = this.getBannerId(idIndex);
-            var banner = this.banner[bannerId];
-            if (banner && banner.isLoaded) {
-                this._resetBanenrStyle({
-                    banner: banner,
-                    width: banner.style.width,
-                    height: banner.style.realHeight
-                });
-                var t = banner.show();
-                if (t)
-                    t.then(function (e) {
-                        console.log("banner show 成功", e);
-                        _this._resetBanenrStyle({
-                            banner: banner,
-                            width: banner.style.width,
-                            height: banner.style.realHeight
-                        });
-                    }).catch(function (e) {
-                        console.log("banner show 出错", e);
-                    });
+            setTimeout(function () {
+                var banner = _this.banner[_this.currentBannerId];
+                if (banner) {
+                    banner.show();
+                }
+                else {
+                    console.log('banner 不存在');
+                }
+                console.log('延迟显示banner 250 ms');
+            }, 250);
+        };
+        QQModule.prototype._onBannerLoad = function () {
+            console.log("banner 加载结束 bannerId");
+            var banner = this.banner[this.currentBannerId];
+            if (banner) {
+                banner.show();
             }
             else {
                 console.log('banner 不存在');
-            }
-        };
-        QQModule.prototype._onBannerLoad = function (bannerId) {
-            console.log("banner 加载结束 bannerId", bannerId);
-            this.bannerShowCount = 0;
-            if (this.banner[bannerId] && !this.banner[bannerId].isLoaded) {
-                this.banner[bannerId].isLoaded = true;
-                this.banner[bannerId].show();
             }
         };
         QQModule.prototype._onBannerResize = function (size) {
@@ -5307,6 +5321,18 @@ var mx = (function () {
                 }
             });
         };
+        /**
+         * 隐藏banner
+         */
+        QQModule.prototype.hideBanner = function () {
+            console.log(" hideBanner ~ this.banner", this.banner);
+            if (this.banner)
+                for (var k in this.banner) {
+                    this.banner[k].hide();
+                    this.banner[k].destroy();
+                    delete this.banner[k];
+                }
+        };
         QQModule.prototype.hideAppBox = function (callback) {
             var _this = this;
             if (this.box) {
@@ -5351,7 +5377,7 @@ var mx = (function () {
             var style = this._getBlockPosition();
             console.log("QQModule -> showBlock -> style", style);
             this.block = window[this.platformName].createBlockAd({
-                adUnitId: this.getBannerId(),
+                adUnitId: this.getBlockId(),
                 orientation: orientation == 1 ? "landscape" : "vertical",
                 size: size,
                 style: {
@@ -6252,6 +6278,7 @@ var mx = (function () {
             var horizontal = this.bannerHorizontal;
             var vertical = this.bannerVertical;
             var wxsys = this.getSystemInfoSync();
+            // console.log("🚀 ~ file: VIVOModule.ts ~ line 214 ~ VIVOModule ~ _getBannerPosition ~ wxsys", wxsys)
             var windowWidth = wxsys.screenWidth;
             var windowHeight = wxsys.screenHeight;
             var statusBarHeight = wxsys.statusBarHeight;
@@ -6265,10 +6292,10 @@ var mx = (function () {
             var top = 0;
             var left = 0;
             if (vertical == BANNER_VERTICAL.TOP) {
-                // if (this.isLandscape(wxsys.windowHeight, wxsys.windowWidth))
-                //     top = 0
-                // else
-                top = statusBarHeight + notchHeight;
+                if (this.isLandscape(wxsys.screenHeight, wxsys.screenWidth))
+                    top = 0;
+                else
+                    top = statusBarHeight + notchHeight;
             }
             else if (vertical == BANNER_VERTICAL.CENTER) {
                 top = (windowHeight - this.bannerHeigth) / 2;
@@ -11007,6 +11034,136 @@ var mx = (function () {
         return FormUtil;
     }());
 
+    var HWModule = /** @class */ (function (_super) {
+        __extends(HWModule, _super);
+        function HWModule() {
+            var _this = _super !== null && _super.apply(this, arguments) || this;
+            _this.platformName = "hbs";
+            _this.mIsClickedNative = false;
+            return _this;
+        }
+        HWModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, idIndex, style) {
+            if (remoteOn === void 0) { remoteOn = true; }
+            if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.CENTER; }
+            if (vertical === void 0) { vertical = BANNER_VERTICAL.BOTTOM; }
+            if (idIndex === void 0) { idIndex = -1; }
+        };
+        HWModule.prototype.showNativeAd = function (callback) {
+            var _this = this;
+            this.nativeCb = callback;
+            if (this.native) {
+                var ret = this.native.load();
+                ret && ret.then(function () {
+                    console.log('原生广告加载完成');
+                }).catch(function (err) {
+                    console.log('原生广告加载失败');
+                    moosnow.http.getAllConfig(function (res) {
+                        if (res.nativeErrorShowInter == 1) {
+                            console.log('原生加载出错，用插屏代替');
+                            _this.nativeCb(null);
+                            _this.showInter();
+                        }
+                        else {
+                            _this.nativeCb(null);
+                        }
+                    });
+                });
+            }
+            else {
+                this._prepareNative(true);
+                // if (this.native)
+                //     this.native.load();
+            }
+        };
+        HWModule.prototype._prepareNative = function (isLoad) {
+            if (isLoad === void 0) { isLoad = false; }
+            if (!window[this.platformName])
+                return;
+            if (!window[this.platformName].createNativeAd)
+                return;
+            this._destroyNative();
+            this.native = window[this.platformName].createNativeAd({
+                posId: this.nativeId[this.nativeIdIndex]
+            });
+            this.native.onLoad(this._onNativeLoad.bind(this));
+            this.native.onError(this._onNativeError.bind(this));
+            this.nativeLoading = true;
+            if (isLoad)
+                this.native.load();
+        };
+        HWModule.prototype._onNativeLoad = function (res) {
+            var _this = this;
+            this.nativeLoading = false;
+            console.log(MSG.NATIVE_LOAD_COMPLETED, res);
+            if (res && res.adList && res.adList.length > 0) {
+                this.nativeAdResult = res.adList[res.adList.length - 1];
+                if (!Common.isEmpty(this.nativeAdResult.adId)) {
+                    console.log(MSG.NATIVE_REPORT);
+                    this.native.reportAdShow({
+                        adId: this.nativeAdResult.adId
+                    });
+                }
+                if (Common.isFunction(this.nativeCb)) {
+                    this.nativeCb(Common.deepCopy(this.nativeAdResult));
+                }
+            }
+            else {
+                console.log(MSG.NATIVE_LIST_NULL);
+                if (Common.isFunction(this.nativeCb)) {
+                    moosnow.http.getAllConfig(function (res) {
+                        if (res.nativeErrorShowInter == 1) {
+                            console.log('原生加载出错，用插屏代替');
+                            _this.showInter();
+                        }
+                        else {
+                            _this.nativeCb(null);
+                        }
+                    });
+                }
+            }
+        };
+        HWModule.prototype._onNativeError = function (err) {
+            var _this = this;
+            this.nativeLoading = false;
+            this.nativeAdResult = null;
+            if (err.code == 20003) {
+                if (this.nativeIdIndex < this.nativeId.length - 1) {
+                    console.log(MSG.NATIVE_ERROR, err);
+                    this.nativeIdIndex += 1;
+                    this._destroyNative();
+                }
+                else {
+                    console.log(MSG.NATIVE_NOT_ID_USE);
+                    this.nativeIdIndex = 0;
+                }
+            }
+            else {
+                console.log(MSG.NATIVE_ERROR2, err);
+            }
+            moosnow.http.getAllConfig(function (res) {
+                if (res.nativeErrorShowInter == 1) {
+                    console.log('原生加载出错，用插屏代替');
+                    _this.showInter();
+                }
+                else {
+                    if (_this.nativeCb)
+                        _this.nativeCb(null);
+                }
+            });
+        };
+        HWModule.prototype.clickNative = function (callback) {
+            if (this.nativeAdResult && !Common.isEmpty(this.nativeAdResult.adId)) {
+                this.mClickedNativeCallback = callback;
+                this.mIsClickedNative = true;
+                console.log(MSG.NATIVE_CLICK, this.nativeAdResult.adId);
+                this.native.reportAdClick({
+                    adId: this.nativeAdResult.adId
+                });
+            }
+        };
+        return HWModule;
+    }(PlatformModule));
+
     var moosnow$1 = /** @class */ (function () {
         function moosnow() {
         }
@@ -11039,6 +11196,8 @@ var mx = (function () {
                         this.mPlatform = new BDModule();
                     else if (Common.platform == APP_PLATFORM.UC)
                         this.mPlatform = new UCModule();
+                    else if (Common.platform == APP_PLATFORM.HW)
+                        this.mPlatform = new HWModule();
                     else {
                         this.mPlatform = new PlatformModule();
                     }
