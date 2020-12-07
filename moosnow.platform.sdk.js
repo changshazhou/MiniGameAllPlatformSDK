@@ -522,6 +522,8 @@ var mx = (function () {
                     config = winCfg.bd;
                 else if (Common.platform == APP_PLATFORM.BYTEDANCE)
                     config = winCfg.byte;
+                else if (Common.platform == APP_PLATFORM.HW)
+                    config = winCfg.hw;
                 else
                     config = winCfg.wx;
                 return config;
@@ -3758,17 +3760,19 @@ var mx = (function () {
                 return;
             if (!window[this.platformName].createBannerAd)
                 return;
-            var style = this._getBannerPosition();
-            console.log(" OPPOModule ~ _createBannerAd ~ style", style);
+            var style = {
+                left: 0,
+                top: 0,
+                width: this.bannerWidth,
+                height: this.bannerHeight
+            };
+            var pos = this._getBannerPosition();
+            var finalStyle = __assign(__assign({}, style), pos);
             var banner = window[this.platformName].createBannerAd({
                 adUnitId: this.getBannerId(),
-                style: {
-                    left: style.left,
-                    top: style.top,
-                    width: this.bannerWidth,
-                    height: this.bannerHeight
-                }
+                style: finalStyle
             });
+            console.log(" create banner ", banner, 'param style ', finalStyle);
             return banner;
         };
         OPPOModule.prototype._onBannerResize = function (size) {
@@ -3795,29 +3799,23 @@ var mx = (function () {
             // else
             //     styleTop = this.bannerStyle.top;
             // this.banner.style.top = styleTop;
-            console.log('_bottomCenterBanner  ', this.banner.style);
+            console.log('_bottomCenterBanner  ', this.banner);
         };
         OPPOModule.prototype._getBannerPosition = function () {
             var wxsys = this.getSystemInfoSync();
-            var windowWidth = wxsys.windowWidth;
-            var windowHeight = wxsys.windowHeight;
+            var windowWidth = wxsys.screenWidth;
+            var windowHeight = wxsys.screenHeight;
             var statusBarHeight = wxsys.statusBarHeight;
             var notchHeight = wxsys.notchHeight || 0;
-            if (this.banner && this.banner.style) {
-                if (!isNaN(this.bannerWidth))
-                    this.banner.style.width = this.bannerWidth;
-                if (!isNaN(this.bannerHeight))
-                    this.banner.style.height = this.bannerHeight;
-            }
             var horizontal = this.bannerHorizontal;
             var vertical = this.bannerVertical;
             var top = 0;
             var left = 0;
             if (vertical == BANNER_VERTICAL.TOP) {
-                if (this.isLandscape(wxsys.screenHeight, wxsys.screenWidth))
-                    top = 0;
-                else
-                    top = statusBarHeight + notchHeight;
+                // if (this.isLandscape(wxsys.screenHeight, wxsys.screenWidth))
+                //     top = 0
+                // else
+                top = statusBarHeight + notchHeight;
             }
             else if (vertical == BANNER_VERTICAL.CENTER) {
                 top = (windowHeight - this.bannerHeigth) / 2;
@@ -3846,13 +3844,14 @@ var mx = (function () {
         };
         OPPOModule.prototype._resetBanenrStyle = function (size) {
             var style = this._getBannerPosition();
-            this.banner.style = {
-                top: style.top,
-                left: style.left,
-                width: size.width,
-                height: size.height
-            };
-            console.log('_resetBanenrStyle ', this.banner.style, 'set style ', style);
+            if (this.banner)
+                this.banner.style = {
+                    top: style.top,
+                    left: style.left,
+                    width: size.width,
+                    height: size.height
+                };
+            console.log('_resetBanenrStyle this.banner ', this.banner, 'set style ', style);
         };
         OPPOModule.prototype._onBannerHide = function () {
             console.log('banner 已隐藏 ');
@@ -3893,22 +3892,23 @@ var mx = (function () {
                 this._showBanner();
         };
         OPPOModule.prototype._showBanner = function () {
-            var _this = this;
             this._prepareBanner();
             if (this.banner) {
-                this._resetBanenrStyle({
-                    width: this.banner.style.width,
-                    height: this.banner.style.height
-                });
+                // this._resetBanenrStyle({
+                //     width: this.banner.style.width,
+                //     height: this.banner.style.height
+                // });
                 var t = this.banner.show();
                 if (t) {
                     t.then(function () {
-                        _this.scheduleOnce(function () {
-                            _this._resetBanenrStyle({
-                                width: _this.banner.style.width,
-                                height: _this.banner.style.height
-                            });
-                        }, 0.5);
+                        console.log('显示成功后');
+                        // this.scheduleOnce(() => {
+                        //     
+                        //     this._resetBanenrStyle({
+                        //         width: this.banner.style.width,
+                        //         height: this.banner.style.height
+                        //     });
+                        // }, 0.5)
                     });
                 }
             }
@@ -11048,8 +11048,58 @@ var mx = (function () {
             if (vertical === void 0) { vertical = BANNER_VERTICAL.BOTTOM; }
             if (idIndex === void 0) { idIndex = -1; }
         };
+        HWModule.prototype.createRewardAD = function (show, idIndex) {
+            var _this = this;
+            if (idIndex === void 0) { idIndex = 0; }
+            if (this.videoLoading) {
+                return;
+            }
+            if (!window[this.platformName]) {
+                if (moosnow.platform.videoCb)
+                    moosnow.platform.videoCb(VIDEO_STATUS.END);
+                return;
+            }
+            if (!window[this.platformName].createRewardedVideoAd) {
+                if (moosnow.platform.videoCb)
+                    moosnow.platform.videoCb(VIDEO_STATUS.END);
+                return;
+            }
+            var videoId = this.getVideoId(idIndex);
+            if (Common.isEmpty(videoId)) {
+                console.warn(MSG.VIDEO_KEY_IS_NULL);
+                if (moosnow.platform.videoCb)
+                    moosnow.platform.videoCb(VIDEO_STATUS.END);
+                return;
+            }
+            if (!this.video[videoId]) {
+                console.log(" HWModule ~ createRewardAD ~ videoId", videoId);
+                this.video[videoId] = window[this.platformName].createRewardedVideoAd({
+                    adUnitId: videoId
+                });
+                if (!this.video[videoId]) {
+                    console.warn('创建视频广告失败');
+                    return;
+                }
+                this.video[videoId].onError(this._onVideoError);
+                this.video[videoId].onClose(this._onVideoClose);
+                this.video[videoId].onLoad(function () {
+                    moosnow.platform.videoLoading = false;
+                    if (_this.video[videoId]) {
+                        _this.video[videoId].show();
+                    }
+                });
+            }
+            moosnow.platform.videoLoading = true;
+            moosnow.platform.videoPlaying = false;
+            this.video[videoId].load();
+        };
+        HWModule.prototype._onVideoError = function (e) {
+            console.warn(MSG.VIDEO_ERROR_COMPLETED, JSON.stringify(e));
+        };
         HWModule.prototype.showNativeAd = function (callback) {
             var _this = this;
+            if (!this.native)
+                this._prepareNative(true);
             this.nativeCb = callback;
             if (this.native) {
                 var ret = this.native.load();
@@ -11069,11 +11119,6 @@ var mx = (function () {
                     });
                 });
             }
-            else {
-                this._prepareNative(true);
-                // if (this.native)
-                //     this.native.load();
-            }
         };
         HWModule.prototype._prepareNative = function (isLoad) {
             if (isLoad === void 0) { isLoad = false; }
@@ -11081,24 +11126,32 @@ var mx = (function () {
                 return;
             if (!window[this.platformName].createNativeAd)
                 return;
-            this._destroyNative();
+            if (this.native)
+                return;
+            var adUnitId = this.nativeId[this.nativeIdIndex];
+            console.log(" HWModule ~ _prepareNative ~ adUnitId", adUnitId);
             this.native = window[this.platformName].createNativeAd({
-                posId: this.nativeId[this.nativeIdIndex]
+                adUnitId: adUnitId,
+                success: function (code) {
+                    console.log("_prepareNative loadNativeAd : success", code);
+                },
+                fail: function (data, code) {
+                    console.log("_prepareNative loadNativeAd fail: " + data + "," + code);
+                }
             });
             this.native.onLoad(this._onNativeLoad.bind(this));
             this.native.onError(this._onNativeError.bind(this));
-            this.nativeLoading = true;
-            if (isLoad)
-                this.native.load();
         };
         HWModule.prototype._onNativeLoad = function (res) {
             var _this = this;
+            console.log(" HWModule ~ _onNativeLoad ~ res", JSON.stringify(res));
             this.nativeLoading = false;
             console.log(MSG.NATIVE_LOAD_COMPLETED, res);
             if (res && res.adList && res.adList.length > 0) {
                 this.nativeAdResult = res.adList[res.adList.length - 1];
                 if (!Common.isEmpty(this.nativeAdResult.adId)) {
                     console.log(MSG.NATIVE_REPORT);
+                    console.log("HWModule ~ _onNativeLoad ~ reportAdShow ", this.nativeAdResult.adId);
                     this.native.reportAdShow({
                         adId: this.nativeAdResult.adId
                     });
