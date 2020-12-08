@@ -2955,7 +2955,7 @@ var mx = (function () {
         }
         Object.defineProperty(HttpModule.prototype, "appLaunchOptions", {
             get: function () {
-                if (!this.mLaunchOptions) {
+                if (Common.isEmpty(this.mLaunchOptions)) {
                     if (moosnow.platform && moosnow.platform.getLaunchOption)
                         this.mLaunchOptions = moosnow.platform.getLaunchOption();
                 }
@@ -3482,6 +3482,7 @@ var mx = (function () {
             if (this.appLaunchOptions && res) {
                 console.log('后台禁止场景 1 ', res.seachEntryScene);
                 console.log('后台禁止场景 2 ', res.shareEntryScene);
+                console.log('进入时的场景 ', this.appLaunchOptions.scene);
                 if ((res.seachEntryOn == 1 && res.seachEntryScene && res.seachEntryScene.indexOf(this.appLaunchOptions.scene) != -1)
                     || (res.shareEntryOn == 1 && res.shareEntryScene && res.shareEntryScene.indexOf(this.appLaunchOptions.scene) != -1)) {
                     callback(true);
@@ -3579,7 +3580,7 @@ var mx = (function () {
                         console.log("\u521D\u59CB\u5316\u5E7F\u544A");
                         // self.initBanner();
                         // self.initInter();
-                        // self._prepareNative();
+                        self._prepareNative();
                     },
                     fail: function (res) {
                         console.warn("\u521D\u59CB\u5316\u5E7F\u544A\u9519\u8BEF " + res.code + "  " + res.msg);
@@ -3593,7 +3594,7 @@ var mx = (function () {
                 console.log("\u521D\u59CB\u5316\u5E7F\u544A");
                 // self.initBanner();
                 // self.initInter();
-                // self._prepareNative();
+                self._prepareNative();
             }
             moosnow.event.addListener(PLATFORM_EVENT.ON_PLATFORM_SHOW, this, this.onAppShow);
         };
@@ -3894,10 +3895,10 @@ var mx = (function () {
         OPPOModule.prototype._showBanner = function () {
             this._prepareBanner();
             if (this.banner) {
-                // this._resetBanenrStyle({
-                //     width: this.banner.style.width,
-                //     height: this.banner.style.height
-                // });
+                this._resetBanenrStyle({
+                    width: this.banner.style.width,
+                    height: this.banner.style.height
+                });
                 var t = this.banner.show();
                 if (t) {
                     t.then(function () {
@@ -3920,10 +3921,10 @@ var mx = (function () {
             }
             if (this.banner && this.banner.hide) {
                 this.banner.hide();
-                this.banner.offResize(this._onBannerResize);
-                this.banner.offError(this._onBannerError);
-                this.banner.offLoad(this._onBannerLoad);
-                this.banner.offHide();
+                this.banner.offResize(null);
+                this.banner.offError(null);
+                this.banner.offLoad(null);
+                this.banner.offHide(null);
                 this.banner.destroy();
                 this.banner = null;
             }
