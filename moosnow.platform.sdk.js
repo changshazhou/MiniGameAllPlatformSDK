@@ -883,12 +883,6 @@ var mx = (function () {
             _this.native = null;
             _this.box = null;
             _this.platformName = "wx";
-            _this.interId = "";
-            _this.boxId = "";
-            /**
-             * https://u.oppomobile.com/main/app.html 广告联盟网站中媒体管理 > 广告管理中广告名称下面的 id 即为 adUnitId
-             */
-            _this.nativeId = [];
             _this.nativeIdIndex = 0;
             _this.mBannerWidth = 300;
             _this.bannerHeigth = 96;
@@ -921,7 +915,6 @@ var mx = (function () {
             _this.prevNavigate = Date.now();
             _this.preloadBannerId = "";
             _this.isLoaded = false;
-            _this.initAppConfig();
             // this._regisiterWXCallback();
             _this.initShare(true);
             _this.share_clickTime = null; //分享拉起时间
@@ -931,56 +924,66 @@ var mx = (function () {
             _this.initRecord();
             return _this;
         }
-        PlatformModule.prototype.getBannerId = function (idx, random) {
-            if (idx === void 0) { idx = 0; }
-            if (random === void 0) { random = false; }
-            var id = Common.config["bannerId"];
-            if (id instanceof Array) {
-                if (random || idx < 0) {
-                    return id[MathUtils.randomNumBoth(0, id.length - 1)];
+        PlatformModule.prototype.getAdId = function (idArray, index) {
+            if (index === void 0) { index = 0; }
+            if (idArray instanceof Array) {
+                if (idArray.length > 0) {
+                    if (index < 0) {
+                        return idArray[Common.randomNumBoth(0, idArray.length - 1)];
+                    }
+                    else if (idArray.length - 1 < index) {
+                        console.warn(' id数组小于传入索引值，请检查代码');
+                        return idArray[0];
+                    }
+                    return idArray[index];
                 }
                 else {
-                    if (id.length - 1 < idx) {
-                        console.warn('banner id数组小于传入索引值，请检查代码');
-                        return null;
-                    }
-                    return id[idx];
+                    console.warn('Id 配置为空');
+                    return null;
                 }
             }
             else {
-                return id;
+                return idArray;
             }
+        };
+        PlatformModule.prototype.getBannerId = function (idx) {
+            if (idx === void 0) { idx = 0; }
+            return this.getAdId(Common.config.bannerId, idx);
         };
         ;
         PlatformModule.prototype.getBlockId = function (idx) {
             if (idx === void 0) { idx = 0; }
-            var id = Common.config["blockId"];
-            if (id instanceof Array) {
-                if (id.length - 1 < idx) {
-                    console.warn('block id数组小于传入索引值，请检查代码');
-                    return null;
-                }
-                return id[idx];
-            }
-            else {
-                return id;
-            }
+            return this.getAdId(Common.config.blockId, idx);
         };
         ;
         PlatformModule.prototype.getVideoId = function (idx) {
             if (idx === void 0) { idx = 0; }
-            var id = Common.config["videoId"];
-            if (id instanceof Array) {
-                if (id.length - 1 < idx) {
-                    console.warn('video id数组小于传入索引值，请检查代码');
-                    return null;
-                }
-                return id[idx];
-            }
-            else {
-                return id;
-            }
+            return this.getAdId(Common.config.videoId, idx);
         };
+        ;
+        Object.defineProperty(PlatformModule.prototype, "interId", {
+            get: function () {
+                return this.getAdId(Common.config.interId, -1);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ;
+        Object.defineProperty(PlatformModule.prototype, "boxId", {
+            get: function () {
+                return this.getAdId(Common.config.boxId, -1);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ;
+        Object.defineProperty(PlatformModule.prototype, "nativeId", {
+            get: function () {
+                return this.getAdId(Common.config.nativeId, -1);
+            },
+            enumerable: true,
+            configurable: true
+        });
         ;
         Object.defineProperty(PlatformModule.prototype, "bannerWidth", {
             get: function () {
@@ -1012,18 +1015,6 @@ var mx = (function () {
         };
         PlatformModule.prototype.vibrateSwitch = function (on) {
             this.vibrateOn = on;
-        };
-        // lateStart() {
-        //     this.updateProgram();
-        //     if (!window[this.platformName]) return;
-        //     Lite.event.sendEventImmediately('OnWXShow', this.getLaunchOption());
-        // }
-        PlatformModule.prototype.initAppConfig = function () {
-            this.moosnowConfig = Common.config;
-            this.interId = this.moosnowConfig["interId"];
-            this.boxId = this.moosnowConfig["boxId"];
-            this.nativeId = this.moosnowConfig["nativeId"];
-            console.log('moosnowConfig ', JSON.stringify(this.moosnowConfig));
         };
         /***
          * 检测IphoneX
@@ -1133,7 +1124,7 @@ var mx = (function () {
             var _this = this;
             var url = this.baseUrl + 'admin/wx_list/getAppConfig';
             var signParams = {
-                appid: this.moosnowConfig.moosnowAppId,
+                appid: Common.config.moosnowAppId,
             };
             var data = signParams;
             moosnow.http.request(url, data, 'POST', function (res) {
@@ -1158,7 +1149,7 @@ var mx = (function () {
             });
         };
         PlatformModule.prototype.checkLog = function (remoteVersion) {
-            var configVersion = moosnow.platform.moosnowConfig.version;
+            var configVersion = Common.config.version;
             var versionRet = remoteVersion != configVersion;
             console.log("\u7248\u672C\u68C0\u67E5 \u540E\u53F0\u7248\u672C" + remoteVersion + " \u914D\u7F6E\u6587\u4EF6\u7248\u672C" + configVersion);
             console.log("获取广告开关：", versionRet);
@@ -1242,6 +1233,7 @@ var mx = (function () {
          * @param complete  跳转完成
          */
         PlatformModule.prototype.navigate2Mini = function (row, success, fail, complete) {
+            var _this = this;
             console.log(MSG.NAVIGATE_DATA, row);
             if (Date.now() - this.prevNavigate < 300) {
                 console.log(MSG.NAVIGATE_FAST);
@@ -1266,25 +1258,28 @@ var mx = (function () {
                 wxgamecid: launchOption.query.wxgamecid
             };
             moosnow.http.point("打开跳转", param);
-            window[this.platformName].navigateToMiniProgram({
-                appId: appid,
-                path: path,
-                extraData: extraData,
-                success: function () {
-                    console.log('跳转参数', param);
-                    moosnow.http.point("跳转", param);
-                    if (success)
-                        success();
-                },
-                fail: function (err) {
-                    console.log('跳转失败 ', err, ' fail callback ', !!fail);
-                    if (fail)
-                        fail();
-                },
-                complete: function () {
-                    if (complete)
-                        complete();
-                }
+            moosnow.http.navigate(row, function (res) {
+                window[_this.platformName].navigateToMiniProgram({
+                    appId: appid,
+                    path: path,
+                    extraData: extraData,
+                    success: function () {
+                        console.log('跳转参数', param);
+                        moosnow.http.point("跳转", param);
+                        moosnow.http.navigateEnd(res.code);
+                        if (success)
+                            success();
+                    },
+                    fail: function (err) {
+                        console.log('跳转失败 ', err, ' fail callback ', !!fail);
+                        if (fail)
+                            fail();
+                    },
+                    complete: function () {
+                        if (complete)
+                            complete();
+                    }
+                });
             });
         };
         /**
@@ -1514,10 +1509,18 @@ var mx = (function () {
          * shareTicket	string	shareTicket   分享到群后点击进入小游戏会有此变量
          */
         PlatformModule.prototype.getLaunchOption = function () {
-            if (window[this.platformName] && window[this.platformName].getLaunchOptionsSync)
-                return window[this.platformName].getLaunchOptionsSync();
-            else
-                return {};
+            if (!this.mLaunchOption) {
+                if (window[this.platformName]) {
+                    if (window[this.platformName].getEnterOptionsSync)
+                        this.mLaunchOption = window[this.platformName].getEnterOptionsSync();
+                    if (window[this.platformName].getLaunchOptionsSync)
+                        this.mLaunchOption = window[this.platformName].getLaunchOptionsSync();
+                }
+                else {
+                    this.mLaunchOption = {};
+                }
+            }
+            return this.mLaunchOption;
         };
         /**
          * return obj
@@ -1868,17 +1871,20 @@ var mx = (function () {
             console.log("_bottomCenterBanner -> size", size);
             var wxsys = this.getSystemInfoSync();
             var windowWidth = wxsys.windowWidth;
-            if (!isNaN(this.banner[bannerId].style.realWidth))
-                this.bannerWidth = this.banner[bannerId].style.realWidth;
-            if (!isNaN(this.banner[bannerId].style.realHeight))
-                this.bannerHeigth = this.banner[bannerId].style.realHeight;
+            if (this.banner[bannerId]) {
+                if (!isNaN(this.banner[bannerId].style.realWidth))
+                    this.bannerWidth = this.banner[bannerId].style.realWidth;
+                if (!isNaN(this.banner[bannerId].style.realHeight))
+                    this.bannerHeigth = this.banner[bannerId].style.realHeight;
+            }
             console.log("_bottomCenterBanner -> this.banner.style", this.banner[bannerId].style);
             if (this.bannerStyle)
                 this.applyCustomStyle({
                     banner: this.banner[bannerId]
                 });
-            else
+            else if (this.banner[bannerId]) {
                 this.banner[bannerId].style.left = (windowWidth - size.width) / 2;
+            }
         };
         PlatformModule.prototype._resetBanenrStyle = function (e) {
             console.log("PlatformModule ~ _resetBanenrStyle ~ size", e);
@@ -1887,14 +1893,17 @@ var mx = (function () {
             }
             else {
                 var style = this._getBannerPosition();
-                e.banner.style.top = style.top;
-                e.banner.style.left = style.left;
-                console.log(MSG.BANNER_RESIZE, e.banner.style, 'set top ', top);
+                if (e.banner) {
+                    e.banner.style.top = style.top;
+                    e.banner.style.left = style.left;
+                    console.log(MSG.BANNER_RESIZE, e.banner.style, 'set top ', top);
+                }
             }
         };
         PlatformModule.prototype.applyCustomStyle = function (e) {
             for (var key in this.bannerStyle) {
-                e.banner.style[key] = this.bannerStyle[key];
+                if (e.banner)
+                    e.banner.style[key] = this.bannerStyle[key];
             }
         };
         PlatformModule.prototype._getBannerPosition = function () {
@@ -3062,49 +3071,42 @@ var mx = (function () {
          * @param jump_appid
          * @param callback
          */
-        // public navigate(jump_appid: string, callback: Function) {
-        //     let userToken = moosnow.data.getToken();
-        //     this.request(`${this.baseUrl}api/jump/record`, {
-        //         appid: Common.config.moosnowAppId,
-        //         uid: userToken,
-        //         jump_appid,
-        //     }, "POST", (respone) => {
-        //         console.log('navigate', respone)
-        //         if (callback)
-        //             callback(respone.data)
-        //     });
-        // }
+        HttpModule.prototype.navigate = function (row, callback) {
+            var userToken = moosnow.data.getToken();
+            var options = moosnow.platform.getLaunchOption();
+            var fromAppId = options.referrerInfo ? options.referrerInfo.appId : '未知';
+            var wxgamecid = options.query.wxgamecid;
+            var query = options.query;
+            var appid = Common.config.moosnowAppId;
+            var navigateData = {
+                scene: options.scene,
+                fromAppId: fromAppId,
+                query: query,
+                wxgamecid: wxgamecid,
+                title: row.title,
+                position: row.position,
+                img: row.atlas || row.img,
+                appid: appid,
+                uid: userToken,
+                jump_appid: row.appid,
+            };
+            console.log('navigate navigateData', navigateData);
+            this.request(this.baseUrl + "api/jump/record", navigateData, "POST", function (respone) {
+                console.log('navigate success ', respone);
+                if (callback)
+                    callback(respone.data);
+            });
+        };
         /**
          * 跳转完成
          * @param code
          */
-        // public navigateEnd(code: string) {
-        //     this.request(`${this.baseUrl}api/jump/status`, {
-        //         code
-        //     }, "POST", (respone) => {
-        //         console.log('navigateEnd code ', code, respone)
-        //     });
-        // }
-        /**
-         *
-         * @param url
-         */
-        HttpModule.prototype.postData = function (url) {
-            var userToken = moosnow.data.getToken();
-            if (!Common.isEmpty(userToken) && moosnow.data.getChannelId() != "0" && moosnow.data.getChannelAppId() != "0") {
-                try {
-                    this.request("" + this.baseUrl + url, {
-                        appid: Common.config.moosnowAppId,
-                        user_id: userToken,
-                        channel_id: moosnow.data.getChannelId(),
-                        channel_appid: moosnow.data.getChannelAppId()
-                    }, "POST", function (respone) {
-                    });
-                }
-                catch (e) {
-                    console.log('postData error ', e);
-                }
-            }
+        HttpModule.prototype.navigateEnd = function (code) {
+            this.request(this.baseUrl + "api/jump/status", {
+                code: code
+            }, "POST", function (respone) {
+                console.log('navigateEnd code ', code, respone);
+            });
         };
         /**
          * 数据打点
@@ -3112,14 +3114,18 @@ var mx = (function () {
          */
         HttpModule.prototype.point = function (name, data) {
             if (data === void 0) { data = null; }
-            if (Common.platform == APP_PLATFORM.WX) {
-                if (window['wx'] && window['wx'].aldSendEvent)
-                    window['wx'].aldSendEvent(name, data);
-            }
-            else if (Common.platform == APP_PLATFORM.BYTEDANCE) {
-                if (window['tt'] && window["tt"].reportAnalytics)
-                    window["tt"].reportAnalytics(name, data);
-            }
+            this.getAllConfig(function (res) {
+                if (!(res && res.aldMonitorOn == 0)) {
+                    if (Common.platform == APP_PLATFORM.WX) {
+                        if (window['wx'] && window['wx'].aldSendEvent)
+                            window['wx'].aldSendEvent(name, data);
+                    }
+                    else if (Common.platform == APP_PLATFORM.BYTEDANCE) {
+                        if (window['tt'] && window["tt"].reportAnalytics)
+                            window["tt"].reportAnalytics(name, data);
+                    }
+                }
+            });
         };
         /**
         * 统计开始游戏
@@ -3323,6 +3329,18 @@ var mx = (function () {
                 else
                     url = ROOT_CONFIG.HTTP_ROOT + "/config/" + Common.config.moosnowAppId + ".json?t=" + Date.now();
                 this.request(url, {}, 'GET', function (res) {
+                    if (res.bannerId)
+                        Common.config.bannerId = res.bannerId;
+                    if (res.interId)
+                        Common.config.interId = res.interId;
+                    if (res.blockId)
+                        Common.config.blockId = res.blockId;
+                    if (res.boxId)
+                        Common.config.boxId = res.boxId;
+                    if (res.nativeId)
+                        Common.config.nativeId = res.nativeId;
+                    if (res.videoId)
+                        Common.config.videoId = res.videoId;
                     var versionRet = moosnow.platform.checkLog(res.version);
                     if (!versionRet) {
                         _this.cfgData = _this.defaultCfg(res, false);
@@ -3575,7 +3593,7 @@ var mx = (function () {
             if (window[this.platformName].initAdService) {
                 window[this.platformName].initAdService({
                     isDebug: true,
-                    appId: this.moosnowConfig.moosnowAppId,
+                    appId: Common.config.moosnowAppId,
                     success: function (res) {
                         console.log("\u521D\u59CB\u5316\u5E7F\u544A");
                         // self.initBanner();
@@ -3940,7 +3958,7 @@ var mx = (function () {
             if (!window[this.platformName].createRewardedVideoAd) {
                 return;
             }
-            if (this.video) {
+            if (!Common.isEmpty(this.video)) {
                 this.video.offClose(this._onVideoClose);
                 this.video.offError(this._onVideoError);
                 this.video.offLoad(this._onVideoLoad);
@@ -4031,7 +4049,7 @@ var mx = (function () {
             if (typeof window[this.platformName].createNativeAd != "function")
                 return;
             this.native = window[this.platformName].createNativeAd({
-                adUnitId: parseInt("" + this.nativeId[this.nativeIdIndex])
+                adUnitId: parseInt("" + this.nativeId)
             });
             this.native.onLoad(this._onNativeLoad.bind(this));
             this.native.onError(this._onNativeError.bind(this));
@@ -5246,17 +5264,13 @@ var mx = (function () {
             }
         };
         QQModule.prototype._showBanner = function () {
-            var _this = this;
-            setTimeout(function () {
-                var banner = _this.banner[_this.currentBannerId];
-                if (banner) {
-                    banner.show();
-                }
-                else {
-                    console.log('banner 不存在');
-                }
-                console.log('延迟显示banner 250 ms');
-            }, 250);
+            var banner = this.banner[this.currentBannerId];
+            if (banner) {
+                banner.show();
+            }
+            else {
+                console.log('banner 不存在');
+            }
         };
         QQModule.prototype._onBannerLoad = function () {
             console.log("banner 加载结束 bannerId");
@@ -5293,7 +5307,7 @@ var mx = (function () {
                     if (res && res.showAppBox == 1) {
                         if (!_this.box) {
                             _this.box = window[_this.platformName].createAppBox({
-                                adUnitId: _this.moosnowConfig.boxId
+                                adUnitId: _this.boxId
                             });
                             _this.box.onClose(_this.onBoxClose.bind(_this));
                         }
@@ -5311,7 +5325,7 @@ var mx = (function () {
                 else {
                     if (!_this.box) {
                         _this.box = window[_this.platformName].createAppBox({
-                            adUnitId: _this.moosnowConfig.boxId
+                            adUnitId: _this.boxId
                         });
                         _this.box.onClose(_this.onBoxClose.bind(_this));
                     }
@@ -5501,7 +5515,7 @@ var mx = (function () {
         ZSOPPOAdModule.prototype.getRemoteAd = function (cb) {
             var url = 'https://platform.qwpo2018.com/api/apk_ad/index';
             var signParams = {
-                apk_id: moosnow.platform.moosnowConfig.moosnowAppId,
+                apk_id: Common.config.moosnowAppId,
             };
             var data = signParams;
             moosnow.http.request(url, data, 'POST', function (res) {
@@ -5559,7 +5573,7 @@ var mx = (function () {
                         // console.log(res.data.token);
                         var url = "https://platform.qwpo2018.com/api/oppo_login/index";
                         moosnow.http.request(url, {
-                            apk_id: moosnow.platform.moosnowConfig.moosnowAppId,
+                            apk_id: Common.config.moosnowAppId,
                             code: res.data.token
                         }, 'POST', function (res2) {
                             moosnow.data.setToken(res2.data.user_id);
@@ -5600,7 +5614,7 @@ var mx = (function () {
             var openId = moosnow.data.getToken();
             var signParams = {
                 user_id: openId,
-                apk_id: moosnow.platform.moosnowConfig.moosnowAppId,
+                apk_id: Common.config.moosnowAppId,
                 appid: appId,
                 link_id: appId,
             };
@@ -5794,12 +5808,12 @@ var mx = (function () {
                 callback(this.cfgData);
             }
             else {
-                var url = moosnow.platform.moosnowConfig.url + "?t=" + Date.now();
-                console.log('appid ', moosnow.platform.moosnowConfig.moosnowAppId);
+                var url = Common.config.url + "?t=" + Date.now();
+                console.log('appid ', Common.config.moosnowAppId);
                 this.request(url, {
-                    apk_id: moosnow.platform.moosnowConfig.moosnowAppId
+                    apk_id: Common.config.moosnowAppId
                 }, 'POST', function (res) {
-                    var enabled = res.data.zs_version == moosnow.platform.moosnowConfig.version;
+                    var enabled = res.data.zs_version == Common.config.version;
                     _this.cfgData = __assign(__assign({}, Common.deepCopy(res.data)), { mistouchNum: res.data.zs_switch, mistouchPosNum: res.data.zs_switch, showNative: enabled, showInter: enabled, showExportAd: enabled, mx_native_click_switch: res.zs_native_click_switch == 1, mx_jump_switch: res.zs_jump_switch == 1, bannerShowCountLimit: isNaN(res.data.bannerShowCountLimit) ? 1 : res.data.bannerShowCountLimit });
                     if (moosnow.platform) {
                         moosnow.platform.bannerShowCountLimit = parseInt(res.data.bannerShowCountLimit);
@@ -6595,7 +6609,7 @@ var mx = (function () {
                 return;
             this._destroyNative();
             this.native = window[this.platformName].createNativeAd({
-                posId: this.nativeId[this.nativeIdIndex]
+                posId: this.nativeId
             });
             this.native.onLoad(this._onNativeLoad.bind(this));
             this.native.onError(this._onNativeError.bind(this));
@@ -11122,6 +11136,7 @@ var mx = (function () {
             }
         };
         HWModule.prototype._prepareNative = function (isLoad) {
+            var _this = this;
             if (isLoad === void 0) { isLoad = false; }
             if (!window[this.platformName])
                 return;
@@ -11129,7 +11144,7 @@ var mx = (function () {
                 return;
             if (this.native)
                 return;
-            var adUnitId = this.nativeId[this.nativeIdIndex];
+            var adUnitId = this.nativeId;
             console.log(" HWModule ~ _prepareNative ~ adUnitId", adUnitId);
             this.native = window[this.platformName].createNativeAd({
                 adUnitId: adUnitId,
@@ -11137,6 +11152,8 @@ var mx = (function () {
                     console.log("_prepareNative loadNativeAd : success", code);
                 },
                 fail: function (data, code) {
+                    if (_this.nativeCb)
+                        _this.nativeCb(null);
                     console.log("_prepareNative loadNativeAd fail: " + data + "," + code);
                 }
             });
@@ -11158,7 +11175,7 @@ var mx = (function () {
                     });
                 }
                 if (Common.isFunction(this.nativeCb)) {
-                    this.nativeCb(Common.deepCopy(this.nativeAdResult));
+                    this.nativeCb(__assign(__assign({}, Common.deepCopy(this.nativeAdResult)), { desc: this.nativeAdResult && this.nativeAdResult.desc ? this.nativeAdResult.desc : "", title: this.nativeAdResult && this.nativeAdResult.title ? this.nativeAdResult.title : "" }));
                 }
             }
             else {
@@ -11192,6 +11209,8 @@ var mx = (function () {
                 }
             }
             else {
+                if (this.nativeCb)
+                    this.nativeCb(null);
                 console.log(MSG.NATIVE_ERROR2, err);
             }
             moosnow.http.getAllConfig(function (res) {

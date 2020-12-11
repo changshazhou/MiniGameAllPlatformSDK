@@ -24,15 +24,13 @@ export default class PlatformModule extends BaseModule {
     native: any;
     box: any;
     platformName: string;
-    getBannerId(idx?: number, random?: boolean): any;
-    getBlockId(idx?: number): any;
-    getVideoId(idx?: number): any;
-    interId: string;
-    boxId: string;
-    /**
-     * https://u.oppomobile.com/main/app.html 广告联盟网站中媒体管理 > 广告管理中广告名称下面的 id 即为 adUnitId
-     */
-    nativeId: Array<number>;
+    getAdId(idArray: Array<string> | string, index?: number): string;
+    getBannerId(idx?: number): string;
+    getBlockId(idx?: number): string;
+    getVideoId(idx?: number): string;
+    get interId(): string;
+    get boxId(): string;
+    get nativeId(): string;
     nativeIdIndex: number;
     mBannerWidth: number;
     get bannerWidth(): number;
@@ -68,7 +66,6 @@ export default class PlatformModule extends BaseModule {
     }[];
     onEnable(): void;
     private vibrateSwitch;
-    initAppConfig(): void;
     /***
      * 检测IphoneX
      */
@@ -139,6 +136,7 @@ export default class PlatformModule extends BaseModule {
     private showUserInfoButton;
     private getSetting;
     private getUserInfo;
+    private mLaunchOption;
     /**
      * 获取游戏启动参数
      * 返回值
@@ -246,6 +244,7 @@ export default class PlatformModule extends BaseModule {
         left: number;
         top: number;
     };
+    private preloadBannerId;
     preloadBanner(idIndex?: number): void;
     /**
       * 显示平台的banner广告
