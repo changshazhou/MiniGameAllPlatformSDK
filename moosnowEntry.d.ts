@@ -92,4 +92,5 @@ declare global {
         static form: FormUtil;
         static nodeHelper: typeof CocosNodeHelper;
     }
+
 }
