@@ -917,6 +917,7 @@ var mx = (function () {
             _this.shareInfoArr = [];
             _this.versionRet = null;
             _this.prevNavigate = Date.now();
+            _this.navigateEnd = true;
             _this.preloadBannerId = "";
             _this.isLoaded = false;
             // this._regisiterWXCallback();
@@ -1237,13 +1238,22 @@ var mx = (function () {
          * @param complete  跳转完成
          */
         PlatformModule.prototype.navigate2Mini = function (row, success, fail, complete) {
+            var _this = this;
             console.log(MSG.NAVIGATE_DATA, row);
-            if (Date.now() - this.prevNavigate < 300) {
+            if (Date.now() - this.prevNavigate < 500) {
                 console.log(MSG.NAVIGATE_FAST);
                 return;
             }
             this.prevNavigate = Date.now();
+            if (!this.navigateEnd) {
+                console.log("跳转未结束");
+                return;
+            }
+            this.navigateEnd = false;
             if (!window[this.platformName]) {
+                this.scheduleOnce(function () {
+                    _this.navigateEnd = true;
+                }, 2);
                 if (fail)
                     fail();
                 // if (success)
@@ -1280,6 +1290,7 @@ var mx = (function () {
                         fail();
                 },
                 complete: function () {
+                    _this.navigateEnd = true;
                     moosnow.data.resetNavigateToken();
                     if (complete)
                         complete();
@@ -1871,11 +1882,14 @@ var mx = (function () {
             this.bannerShowCount = 0;
         };
         PlatformModule.prototype._onBannerError = function (bannerId, err) {
-            console.warn('banner___error:', err.errCode, err.errMsg);
+            console.warn('banner___error:', err);
             this.banner[bannerId] = null;
             this.isBannerShow = false;
             moosnow.event.sendEventImmediately(PLATFORM_EVENT.ON_BANNER_HIDE, null);
-            moosnow.event.sendEventImmediately(PLATFORM_EVENT.ON_BANNER_ERROR, null);
+            moosnow.event.sendEventImmediately(PLATFORM_EVENT.ON_BANNER_ERROR, {
+                horizontal: this.bannerHorizontal,
+                vertical: this.bannerVertical
+            });
         };
         PlatformModule.prototype._onBannerResize = function (bannerId, size) {
             console.log("_bottomCenterBanner -> size", size);
@@ -1944,19 +1958,31 @@ var mx = (function () {
             else if (horizontal == BANNER_HORIZONTAL.CENTER) {
                 left = (windowWidth - this.bannerWidth) / 2;
             }
-            // return {
             console.log("PlatformModule ~ _getBannerPosition ~ left", left, top);
-            //     left: 16,
-            //     top: 16,
-            // }
             return {
                 left: left,
                 top: top,
             };
         };
+        /**
+         * @ 预加载banner ，返回 banner id 的 index
+         * @ 随机banner的时候有用
+         * @param idIndex
+         */
         PlatformModule.prototype.preloadBanner = function (idIndex) {
             if (idIndex === void 0) { idIndex = -1; }
             this.preloadBannerId = this._createBannerAd(idIndex);
+            return this.getPreloadBannerIndex();
+        };
+        /**
+         * 获取preload
+         */
+        PlatformModule.prototype.getPreloadBannerIndex = function () {
+            var arr = Common.config.bannerId;
+            if (arr instanceof Array) {
+                return arr.indexOf(this.preloadBannerId);
+            }
+            return 0;
         };
         /**
           * 显示平台的banner广告
@@ -2000,6 +2026,40 @@ var mx = (function () {
                 });
             else
                 this._showBanner();
+        };
+        PlatformModule.prototype.showScreenOutBanner = function () {
+            if (!window[this.platformName])
+                return;
+            if (!window[this.platformName].createBannerAd)
+                return;
+            this.hideScreenOutBanner();
+            var bannerId = this.getBannerId(-1);
+            this.mScreenOutBanner = window[this.platformName].createBannerAd({
+                adUnitId: bannerId,
+                adIntervals: 30,
+                style: {
+                    top: -300,
+                    left: -300,
+                    width: this.bannerWidth
+                }
+            });
+            this.mScreenOutBanner.onResize(function (res) {
+                console.log('外部banner onResize', res);
+            });
+            this.mScreenOutBanner.onError(function (err) {
+                console.log('外部banner onError', err);
+            });
+            this.mScreenOutBanner.onLoad(function (err) {
+                console.log('外部banner onLoad', err);
+            });
+            this.mScreenOutBanner.show();
+        };
+        PlatformModule.prototype.hideScreenOutBanner = function () {
+            if (this.mScreenOutBanner) {
+                this.mScreenOutBanner.hide();
+                this.mScreenOutBanner.destroy();
+                this.mScreenOutBanner = null;
+            }
         };
         PlatformModule.prototype._showBanner = function () {
             var _this = this;
@@ -3319,7 +3379,18 @@ var mx = (function () {
                 isStartMistouch: 0,
                 isStartVideo: 0,
                 loadingAdOn: 0,
-                isBlockClose: 0
+                isBlockClose: 0,
+                SkinForceAd: 0,
+                CancelToSkip: 0,
+                SliceSkip: 0,
+                ForceSkip02: 0,
+                ForceSkip01: 0,
+                GameCenterWudian: 0,
+                SkinWudian: 0,
+                GGPopWudian: 0,
+                GamingEndFlashBanner: 0,
+                FlashBanner01: 0,
+                RewardOffsetBanner: 0
             };
             if (open) {
                 for (var key in cfg) {
@@ -4023,9 +4094,9 @@ var mx = (function () {
                 return;
             }
             if (!Common.isEmpty(this.video)) {
-                this.video.offClose(this._onVideoClose);
-                this.video.offError(this._onVideoError);
-                this.video.offLoad(this._onVideoLoad);
+                this.video.offClose(moosnow.platform._onVideoClose);
+                this.video.offError(moosnow.platform._onVideoError);
+                this.video.offLoad(moosnow.platform._onVideoLoad);
             }
             else {
                 if (Common.isEmpty(this.getVideoId())) {
@@ -4036,9 +4107,9 @@ var mx = (function () {
                     adUnitId: this.getVideoId()
                 });
             }
-            this.video.onError(this._onVideoError.bind(this));
-            this.video.onClose(this._onVideoClose.bind(this));
-            this.video.onLoad(this._onVideoLoad.bind(this));
+            this.video.onError(moosnow.platform._onVideoError);
+            this.video.onClose(moosnow.platform._onVideoClose);
+            this.video.onLoad(moosnow.platform._onVideoLoad);
             moosnow.platform.videoLoading = true;
             this.video.load();
         };
@@ -5284,6 +5355,7 @@ var mx = (function () {
                 width: 320,
                 height: height
             };
+            console.log(" 显示前先关闭 banner ");
             this.hideBanner();
             console.log(" QQModule ~ _createBannerAd ~ style", style, bannerId);
             this.banner[bannerId] = window[this.platformName].createBannerAd({
@@ -5296,6 +5368,27 @@ var mx = (function () {
                 this.banner[bannerId].onLoad(this._onBannerLoad.bind(this));
             }
             return bannerId;
+        };
+        QQModule.prototype._onBannerLoad = function () {
+            console.log("banner 加载结束 bannerId");
+            for (var k in this.banner) {
+                if (k != this.currentBannerId) {
+                    this.banner[k].hide();
+                    this.banner[k].destroy();
+                    this.banner[k] = null;
+                    delete this.banner[k];
+                }
+            }
+            var banner = this.banner[this.currentBannerId];
+            if (banner) {
+                banner.show();
+            }
+            else {
+                console.log('banner 不存在');
+            }
+        };
+        QQModule.prototype._onBannerError = function (bannerId, err) {
+            console.warn('banner___error:', err, ' bannerId ', bannerId);
         };
         /**
           * 显示平台的banner广告
@@ -5319,7 +5412,6 @@ var mx = (function () {
             this.bannerHorizontal = horizontal;
             this.bannerVertical = vertical;
             this.bannerStyle = style;
-            this.hideBanner();
             if (remoteOn)
                 moosnow.http.getAllConfig(function (res) {
                     if (res.mistouchNum == 0) {
@@ -5338,16 +5430,6 @@ var mx = (function () {
             }
         };
         QQModule.prototype._showBanner = function () {
-            var banner = this.banner[this.currentBannerId];
-            if (banner) {
-                banner.show();
-            }
-            else {
-                console.log('banner 不存在');
-            }
-        };
-        QQModule.prototype._onBannerLoad = function () {
-            console.log("banner 加载结束 bannerId");
             var banner = this.banner[this.currentBannerId];
             if (banner) {
                 banner.show();
@@ -5419,6 +5501,7 @@ var mx = (function () {
                 for (var k in this.banner) {
                     this.banner[k].hide();
                     this.banner[k].destroy();
+                    this.banner[k] = null;
                     delete this.banner[k];
                 }
         };
