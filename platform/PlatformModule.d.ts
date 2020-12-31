@@ -24,6 +24,7 @@ export default class PlatformModule extends BaseModule {
     native: any;
     box: any;
     platformName: string;
+    bannerErrorQuene: any[];
     getAdId(idArray: Array<string> | string, index?: number): string;
     getBannerId(idx?: number): string;
     getBlockId(idx?: number): string;
@@ -107,6 +108,7 @@ export default class PlatformModule extends BaseModule {
     getClipboardData(success: (res: any) => void, fail: (res: any) => void): void;
     setClipboardData(msg: string, success: (res: any) => void, fail: (res: any) => void): void;
     prevNavigate: number;
+    navigateEnd: boolean;
     /**
      * 跳转到指定App
      * @param row  跳转数据
@@ -228,13 +230,14 @@ export default class PlatformModule extends BaseModule {
     private _regisiterOnHide;
     private _onHideCallback;
     initBanner(): void;
-    _prepareBanner(): void;
+    _prepareBanner(bannerId: string): void;
     /**
      * 创建banner
      * @param adIndex
      * @return bannerId
      */
     _createBannerAd(adIndex: number): string;
+    private triggerBannerError;
     _onBannerLoad(bannerId: any): void;
     _onBannerError(bannerId: any, err: any): void;
     _onBannerResize(bannerId: any, size: any): void;
@@ -245,7 +248,16 @@ export default class PlatformModule extends BaseModule {
         top: number;
     };
     private preloadBannerId;
-    preloadBanner(idIndex?: number): void;
+    /**
+     * @ 预加载banner ，返回 banner id 的 index
+     * @ 随机banner的时候有用
+     * @param idIndex
+     */
+    preloadBanner(idIndex?: number): number;
+    /**
+     * 获取preload
+     */
+    private getPreloadBannerIndex;
     /**
       * 显示平台的banner广告
       * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
@@ -256,7 +268,10 @@ export default class PlatformModule extends BaseModule {
       * @param style 自定义样式
       */
     showBanner(remoteOn?: boolean, callback?: (isOpend: boolean) => void, horizontal?: BANNER_HORIZONTAL, vertical?: BANNER_VERTICAL, idIndex?: number, style?: bannerStyle): void;
-    _showBanner(idIndex: any): void;
+    private mScreenOutBanner;
+    showScreenOutBanner(): void;
+    hideScreenOutBanner(): void;
+    _showBanner(): void;
     mTimeoutId: number;
     /**
      * 会自动隐藏的banner
@@ -266,6 +281,15 @@ export default class PlatformModule extends BaseModule {
      * @param idIndex id顺序 -1 会随机
      */
     showAutoBanner(horizontal?: BANNER_HORIZONTAL, vertical?: BANNER_VERTICAL, idIndex?: number): void;
+    /**
+     * 游戏结束时的自动banner
+     * @param horizontal banner的位置，默认底部
+     * @param vertical banner的位置，默认底部
+     * @param idIndex id顺序 -1 会随机
+     */
+    showFlashBanner(horizontal?: BANNER_HORIZONTAL, vertical?: BANNER_VERTICAL, idIndex?: number): void;
+    private showFlashBannerCallback;
+    private hideFlashBannerCallback;
     exitApplication(): void;
     /**
      * 连续不断的显示和隐藏 banner
@@ -280,6 +304,8 @@ export default class PlatformModule extends BaseModule {
     * 隐藏banner
     */
     hideBanner(): void;
+    private _hideBanner;
+    private destroyBanner;
     initVideo(): void;
     createRewardAD(show: boolean, idIndex?: number): void;
     _onVideoError(msg: any, code: any): void;
