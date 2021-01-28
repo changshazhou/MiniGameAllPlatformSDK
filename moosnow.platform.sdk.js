@@ -6042,24 +6042,6 @@ var mx = (function () {
         function ZSHttpModule() {
             return _super !== null && _super.apply(this, arguments) || this;
         }
-        /**
-         * 获取误点间隔次数，启动游戏时调用
-         * @param {Funtion} callback 回调参数为misTouchNum:int，当misTouchNum=0时关闭误点，当misTouchNum=n(0除外)时，每隔n次，触发误点1次
-         */
-        ZSHttpModule.prototype.getMisTouchNum = function (callback) {
-            this.loadCfg(function (res) {
-                callback(parseInt(res.mistouchNum));
-            });
-        };
-        /**
-         * 获取位移间隔次数，启动游戏时调用
-         * @param {Funtion} callback 回调参数为mistouchPosNum:int，当misTouchNum=0时关闭误点，当mistouchPosNum=n(0除外)时，每隔n次，触发误点1次
-         */
-        ZSHttpModule.prototype.getMistouchPosNum = function (callback) {
-            this.loadCfg(function (res) {
-                callback(parseInt(res.mistouchPosNum));
-            });
-        };
         ZSHttpModule.prototype.getBannerShowCountLimit = function (callback) {
             this.loadCfg(function (res) {
                 if (isNaN(res.bannerShowCountLimit))
