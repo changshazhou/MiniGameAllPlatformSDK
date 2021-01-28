@@ -2022,15 +2022,6 @@ var mx = (function () {
             }
             return 0;
         };
-        /**
-          * 显示平台的banner广告
-          * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
-          * @param callback 点击回调
-          * @param horizontal banner的位置，默认底部
-          * @param vertical banner的位置，默认底部
-          * @param idIndex id顺序 -1 会随机
-          * @param style 自定义样式
-          */
         PlatformModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, idIndex, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
@@ -4121,13 +4112,6 @@ var mx = (function () {
         OPPOModule.prototype._onBannerHide = function () {
             console.log('banner 已隐藏 ');
         };
-        /**
-         * 显示平台的banner广告
-         * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
-         * @param callback 点击回调
-         * @param position banner的位置，默认底部
-         * @param style 自定义样式
-         */
         OPPOModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, idIndex, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
@@ -5089,16 +5073,6 @@ var mx = (function () {
                 this.banner[bannerId].show();
             }
         };
-        // public _prepareBanner() {
-        //     super._prepareBanner();
-        // }
-        /**
-         * 显示平台的banner广告
-         * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
-         * @param callback 点击回调
-         * @param position banner的位置，默认底部
-         * @param style 自定义样式
-         */
         TTModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, idIndex, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
@@ -5501,13 +5475,6 @@ var mx = (function () {
         QQModule.prototype._onBannerError = function (bannerId, err) {
             console.warn('banner___error:', err, ' bannerId ', bannerId);
         };
-        /**
-          * 显示平台的banner广告
-          * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
-          * @param callback 点击回调
-          * @param position banner的位置，默认底部
-          * @param style 自定义样式
-          */
         QQModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, idIndex, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
@@ -6638,13 +6605,6 @@ var mx = (function () {
         VIVOModule.prototype._onBannerHide = function () {
             console.log('banner 已隐藏 ');
         };
-        /**
-          * 显示平台的banner广告
-          * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
-          * @param callback 点击回调
-          * @param position banner的位置，默认底部
-          * @param style 自定义样式
-          */
         VIVOModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, idIndex, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
@@ -7467,13 +7427,6 @@ var mx = (function () {
             });
             return banner;
         };
-        /**
-         * 显示平台的banner广告
-         * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
-         * @param callback 点击回调
-         * @param position banner的位置，默认底部
-         * @param style 自定义样式
-         */
         UCModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, adIndex, style) {
             var _this = this;
             if (remoteOn === void 0) { remoteOn = true; }
@@ -9651,15 +9604,6 @@ var mx = (function () {
             });
             return _this;
         }
-        /**
-       * 显示平台的banner广告
-       * @param remoteOn 是否被后台开关控制 默认 true，误触的地方传 true  普通的地方传 false
-       * @param callback 点击回调
-       * @param horizontal banner的位置，默认底部
-       * @param vertical banner的位置，默认底部
-       * @param idIndex id顺序 -1 会随机
-       * @param style 自定义样式
-       */
         KuaiModule.prototype.showBanner = function (remoteOn, callback, horizontal, vertical, idIndex, style) {
             if (remoteOn === void 0) { remoteOn = true; }
             if (horizontal === void 0) { horizontal = BANNER_HORIZONTAL.CENTER; }
